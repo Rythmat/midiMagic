@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MIDI Composer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>MIDI Composer</h1>
+  <span id="server-status" class="pill">connecting…</span>
+  <span id="engine-status" class="muted small"></span>
+</header>
+
+<main class="layout">
+  <!-- ============================== controls -->
+  <section class="panel controls" aria-label="Generation settings">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-midi" class="tab active" data-mode="midi">From MIDI</button>
+      <button role="tab" id="tab-metadata" class="tab" data-mode="metadata">From metadata</button>
+    </div>
+
+    <div id="midi-controls">
+      <label class="field">MIDI file
+        <input type="file" id="file" accept=".mid,.midi,audio/midi">
+      </label>
+      <div class="row">
+        <label class="field">Input role
+          <select id="inputRole"></select>
+        </label>
+        <label class="field">Manual root (optional)
+          <select id="rootOverride"><option value="">auto-detect</option></select>
+        </label>
+      </div>
+      <button id="analyze" class="secondary" disabled>Analyze MIDI</button>
+      <p id="analyze-hint" class="hint"></p>
+      <label class="field">Target key (transpose output)
+        <select id="targetKey"><option value="">same as input</option></select>
+      </label>
+    </div>
+
+    <div id="metadata-controls" hidden>
+      <div class="row">
+        <label class="field">Genre <select id="genre"></select></label>
+        <label class="field">Emotion <select id="emotion"></select></label>
+      </div>
+      <div class="row">
+        <label class="field">Key / root <select id="key"></select></label>
+        <label class="field">Form <select id="form"></select></label>
+      </div>
+    </div>
+
+    <fieldset class="field">
+      <legend>Generate roles</legend>
+      <div id="roles" class="chips"></div>
+    </fieldset>
+
+    <div class="row">
+      <label class="field">Mode
+        <select id="scaleMode"><option value="">auto</option></select>
+      </label>
+      <label class="field">Meter <input id="meter" value="4/4" size="5"></label>
+    </div>
+    <div class="row">
+      <label class="field">Tempo (BPM) <input id="tempo" type="number" min="20" max="300" placeholder="auto"></label>
+      <label class="field">Length (bars) <input id="bars" type="number" min="1" max="256" placeholder="auto"></label>
+    </div>
+    <label class="field">Density / complexity <span id="density-val" class="muted">0.50</span>
+      <input id="density" type="range" min="0" max="1" step="0.05" value="0.5">
+    </label>
+    <label class="field">Instrumentation
+      <input id="instrumentation" list="presets" placeholder="e.g. piano, bass, drums, strings">
+      <datalist id="presets"></datalist>
+    </label>
+    <div class="row">
+      <label class="field">Variations <input id="variations" type="number" min="1" max="8" value="3"></label>
+      <label class="field">Seed <input id="seed" type="number" value="0"></label>
+      <label class="field">Engine <select id="engine"></select></label>
+    </div>
+
+    <button id="generate" class="primary" disabled>Generate</button>
+    <ul id="generate-hint" class="hint-list"></ul>
+  </section>
+
+  <!-- ============================== analysis + results -->
+  <section class="panel output" aria-label="Analysis and results">
+    <div id="session-notice" class="warning" hidden></div>
+    <div id="empty-state" class="empty">
+      <h2>Start here</h2>
+      <p><b>From MIDI:</b> choose a MIDI file. It is analyzed automatically (root, key, tempo, meter, tracks and roles);
+        then pick the roles to generate and press Generate.</p>
+      <p><b>From metadata:</b> choose genre, emotion, key, tempo, length and instrumentation, then press Generate.</p>
+      <p class="muted">Results, scores, a piano roll, per-track regeneration and downloads appear here.
+        Nothing is stored: uploads and results exist only while this page is open, and closing or refreshing it
+        discards them.</p>
+    </div>
+    <div id="analysis-box" hidden>
+      <h2>Input analysis</h2>
+      <div id="analysis-error" class="error" hidden></div>
+      <dl class="facts" id="analysis-facts"></dl>
+      <div id="root-warning" class="warning" hidden></div>
+      <table class="tracks" id="analysis-tracks">
+        <thead><tr><th>#</th><th>Track</th><th>Instrument</th><th>Notes</th><th>Detected</th><th>Role</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="job-box" hidden>
+      <h2>Generation <span id="job-status" class="pill"></span></h2>
+      <div id="job-error" class="error" hidden></div>
+      <div id="job-progress" class="muted small"></div>
+    </div>
+
+    <div id="result-box" hidden>
+      <div class="row spread">
+        <label class="field">Candidate <select id="candidate"></select></label>
+        <div class="buttons">
+          <button id="play" class="secondary" disabled>Play</button>
+          <button id="stop" class="secondary" disabled>Stop</button>
+          <button id="download" class="primary" disabled>Download MIDI</button>
+          <a id="manifest-link" class="small" target="_blank" rel="noopener">manifest</a>
+        </div>
+      </div>
+      <p class="hint">Closing or refreshing this page discards these results. Download anything you want to keep.</p>
+      <div id="scores" class="scores"></div>
+      <canvas id="roll" height="300" aria-label="Piano roll of the selected candidate"></canvas>
+      <h3>Tracks</h3>
+      <table class="tracks" id="result-tracks">
+        <thead><tr><th></th><th>Track</th><th>Role</th><th>Instrument</th><th>Notes</th><th>Source</th><th>Lock</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="buttons">
+        <button id="regen-track" class="secondary" disabled>Regenerate selected track</button>
+        <span id="regen-track-hint" class="hint inline"></span>
+      </div>
+      <h3>Sections</h3>
+      <div id="sections" class="chips"></div>
+      <div class="buttons">
+        <button id="regen-section" class="secondary" disabled>Regenerate selected section</button>
+        <span id="regen-section-hint" class="hint inline"></span>
+      </div>
+      <h3>Warnings &amp; validation</h3>
+      <ul id="warnings" class="warn-list"></ul>
+    </div>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

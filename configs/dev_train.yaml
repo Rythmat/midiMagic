@@ -1,0 +1,32 @@
+# Development-scale training run (minutes on a single consumer GPU).
+# Trains on a deterministic SUBSET of the XMIDI train split; the checkpoint records exactly how many files.
+data_dir: data/xmidi            # output of `midicomposer.cli prepare`
+xmidi_root: XMIDI_Dataset       # where the MIDI files live (paths in the manifest are relative to this)
+cache_dir: data/token_cache
+max_train_files: 8000
+max_val_files: 400
+max_bars_per_file: 96
+window_bars: 8
+max_len: 1024
+d_model: 256
+n_layers: 6
+n_heads: 8
+d_ff: 1024
+bar_layers: 2
+max_bars: 64
+dropout: 0.1
+batch_size: 24
+lr: 0.0006
+weight_decay: 0.05
+warmup_steps: 200
+max_steps: 4000
+eval_every: 250
+eval_batches: 25
+grad_clip: 1.0
+seed: 0
+device: auto
+amp: true
+num_workers: 0
+prep_workers: 16
+log_every: 50
+out: checkpoints/composer_dev.pt

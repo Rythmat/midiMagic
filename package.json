@@ -1,0 +1,9 @@
+{
+  "name": "midicomposer-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test web/tests/ui-state.test.mjs",
+    "serve": "python -m http.server 5173 --directory web"
+  }
+}

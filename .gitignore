@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+XMIDI_Dataset/
+data/
+checkpoints/*.pt
+!checkpoints/README.md
+node_modules/
+/docs
+configs/default.yaml
+reports/
+examples/

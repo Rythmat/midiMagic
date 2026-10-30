@@ -1,0 +1,56 @@
+{
+  "genres": [
+    "classical",
+    "country",
+    "jazz",
+    "pop",
+    "rock",
+    "traditional"
+  ],
+  "emotions": [
+    "angry",
+    "exciting",
+    "fear",
+    "funny",
+    "happy",
+    "lazy",
+    "magnificent",
+    "quiet",
+    "romantic",
+    "sad",
+    "warm"
+  ],
+  "metrics": {
+    "val": {
+      "n": 9737,
+      "genre_acc": 0.5216,
+      "emotion_acc": 0.4768,
+      "genre_macro_f1": 0.4943,
+      "emotion_macro_f1": 0.4717
+    },
+    "test": {
+      "n": 9572,
+      "genre_acc": 0.5281,
+      "emotion_acc": 0.4814,
+      "genre_macro_f1": 0.5,
+      "emotion_macro_f1": 0.4749
+    },
+    "train": {
+      "n": 77086,
+      "genre_acc": 0.5733,
+      "emotion_acc": 0.5264,
+      "genre_macro_f1": 0.5589,
+      "emotion_macro_f1": 0.5424
+    }
+  },
+  "majority_baseline": {
+    "genre_majority": 0.23620977852068534,
+    "emotion_majority": 0.2055996656916005
+  },
+  "n_train": 77086,
+  "n_val": 9737,
+  "n_test": 9572,
+  "trained_at": "2026-10-29 13:12:51",
+  "train_seconds": 6.8,
+  "limitation": "Classifiers are trained on XMIDI's train split and evaluated on held-out splits; scores on generated music are out-of-distribution estimates and are combined with rule-based quality metrics rather than used alone."
+}
