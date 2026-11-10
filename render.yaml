@@ -1,0 +1,20 @@
+# Render Blueprint: one web service runs the API and serves the web UI.
+# In Render: New > Blueprint, then choose this repository.
+services:
+  - type: web
+    name: midi-magic
+    runtime: python
+    # free: 0.1 CPU / 512 MB, sleeps after 15 idle minutes; fine for the rule engine, slow for neural requests.
+    # starter (0.5 CPU / 512 MB) or standard (1 CPU / 2 GB) are paid and never sleep.
+    plan: free
+    # CPU-only PyTorch first: the default Linux wheel brings several GB of GPU libraries Render can't use.
+    # requirements.txt then finds torch already installed and leaves it alone.
+    buildCommand: pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+    # Render routes traffic to $PORT and requires binding to 0.0.0.0.
+    # Keep this service at ONE instance: sessions, uploads and results live in this process's memory.
+    startCommand: python -m midicomposer.cli serve --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # One math thread per process; more just compete for the instance's small CPU share.
+      - key: OMP_NUM_THREADS
+        value: "1"

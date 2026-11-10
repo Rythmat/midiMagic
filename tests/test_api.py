@@ -134,3 +134,30 @@ def test_undetermined_root_job_reports_error(client):
     r = client.post("/generate", json={"mode": "midi", "upload_id": up["upload_id"], "generated_roles": ["chord_bed"],
                                        "root_override": "G"})
     assert wait(client, r.json()["job_id"])["status"] == "done"
+
+
+def test_prepare_dataset_is_off_by_default(client, fixture_dataset):
+    r = client.post("/prepare-dataset", json={"xmidi_root": str(fixture_dataset), "max_files": 1})
+    assert r.status_code == 403 and "prepare" in r.json()["detail"]
+
+
+def test_prepare_dataset_only_writes_inside_data(fixture_dataset, tmp_path):
+    st = Settings(classifier_checkpoint=None, model_checkpoint=None, label_vocab=None, allow_dataset_preparation=True)
+    with TestClient(create_app(st)) as c:
+        for out_dir in (str(tmp_path / "elsewhere"), "../outside", "data/../../escape", "data", "web"):
+            r = c.post("/prepare-dataset", json={"xmidi_root": str(fixture_dataset), "out_dir": out_dir, "max_files": 1})
+            assert r.status_code == 422, out_dir
+        assert c.post("/prepare-dataset", json={"xmidi_root": str(tmp_path / "missing")}).status_code == 422
+
+
+def test_settings_from_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIDICOMPOSER_CONFIG", str(tmp_path / "no-config.yaml"))
+    monkeypatch.setenv("MIDICOMPOSER_ALLOW_DATASET_PREPARATION", "false")
+    monkeypatch.setenv("MIDICOMPOSER_MAX_UPLOAD_MB", "2.5")
+    monkeypatch.setenv("MIDICOMPOSER_JOB_WORKERS", "3")
+    monkeypatch.setenv("MIDICOMPOSER_MODEL_CHECKPOINT", "")
+    s = Settings.load()
+    assert s.allow_dataset_preparation is False and s.max_upload_mb == 2.5 and s.job_workers == 3
+    assert s.model_checkpoint is None
+    monkeypatch.setenv("MIDICOMPOSER_ALLOW_DATASET_PREPARATION", "1")
+    assert Settings.load().allow_dataset_preparation is True

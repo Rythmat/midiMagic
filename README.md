@@ -132,6 +132,26 @@ python scripts/evaluate_engines.py --n-anchors 8   # writes reports/engine_compa
 python scripts/make_examples.py                    # regenerates examples/
 ```
 
+## Deploying to Render
+
+`render.yaml` describes a single web service that runs the API and serves the UI. Push the repository to GitHub,
+then in Render choose **New > Blueprint** and pick it. What it sets up:
+
+* **Build:** CPU-only PyTorch, then `requirements.txt`. The default Linux PyTorch wheel would pull in several GB of
+  GPU libraries that Render can't use.
+* **Start:** `python -m midicomposer.cli serve --host 0.0.0.0 --port $PORT`, with a `/health` check.
+* **Plan:** `free` (0.1 CPU, 512 MB, sleeps after 15 idle minutes). Change `plan:` to `starter` or `standard` for a
+  paid instance that never sleeps and runs neural requests faster.
+* **One instance only:** sessions live in the server's memory, so don't scale it out. A restart or sleep ends open
+  sessions, and the page tells its user.
+* **Models:** `checkpoints/classifiers.pt` and `checkpoints/composer_dev.pt` are committed (the rest of
+  `checkpoints/` stays ignored). Without them the service still runs, using only the rule-based engine and heuristic
+  genre/emotion scores.
+* **Dataset endpoint:** `POST /prepare-dataset` stays off. It is the only endpoint that reads server folders and
+  writes files, so leave `allow_dataset_preparation` unset on any public server.
+
+The app has no login. Anyone with the URL can run generation jobs on the instance.
+
 ---
 
 ## Architecture
@@ -257,7 +277,7 @@ channel assignment.
 | `POST /regenerate-track` | `{job_id, candidate, track_id, seed?}` → new job; other tracks unchanged |
 | `POST /regenerate-section` | `{job_id, candidate, section_index \| start_bar+end_bar, track_ids?, seed?}` → new job; locked tracks unchanged |
 | `POST /generation/{job_id}/lock` | `{candidate, track_id, locked}`; input tracks are always locked |
-| `POST /prepare-dataset` | `{xmidi_root?, out_dir, max_files}` → background preprocessing job (`GET /jobs/{id}`) |
+| `POST /prepare-dataset` | `{xmidi_root?, out_dir, max_files}` → background preprocessing job (`GET /jobs/{id}`). Off (403) unless `allow_dataset_preparation` is set; `out_dir` must be inside `data/` |
 
 A request whose `X-Session-Id` has ended gets **410**. Interactive docs: <http://127.0.0.1:8000/docs>.
 

@@ -11,7 +11,7 @@ import asyncio
 import json
 import os
 from contextlib import asynccontextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 import yaml
@@ -43,6 +43,9 @@ XMIDI_DEFAULT_EMOTIONS = ["angry", "exciting", "fear", "funny", "happy", "lazy",
 SWEEP_SECONDS = 15
 FORM_OVERHEAD_BYTES = 64 * 1024     # multipart boundaries and text fields around the uploaded file
 SESSION_GONE = "This session has ended; its uploads and results were discarded."
+DATA_DIR = (ROOT / "data").resolve()
+# Settings field annotation -> parser for MIDICOMPOSER_<SETTING> environment variables.
+_ENV_PARSERS = {"bool": lambda v: v.strip().lower() in ("1", "true", "yes", "on"), "int": int, "float": float}
 
 
 @dataclass
@@ -57,6 +60,9 @@ class Settings:
     anonymous_ttl_seconds: float = 600      # curl/script uploads and jobs expire when unused for this long
     max_uploads_per_session: int = 8
     max_jobs_per_session: int = 20
+    # POST /prepare-dataset reads folders on the server and writes into data/. Only turn this on for a
+    # server you alone use; the `prepare` CLI command does the same job without exposing it.
+    allow_dataset_preparation: bool = False
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "Settings":
@@ -66,11 +72,11 @@ class Settings:
             for k, v in (yaml.safe_load(p.read_text()) or {}).items():
                 if hasattr(s, k):
                     setattr(s, k, v)
-        for k in asdict(s):
-            env = os.environ.get(f"MIDICOMPOSER_{k.upper()}")
+        for f in fields(s):
+            env = os.environ.get(f"MIDICOMPOSER_{f.name.upper()}")
             if env is not None:
-                current = getattr(s, k)
-                setattr(s, k, type(current)(env) if isinstance(current, (int, float)) else (env or None))
+                parse = _ENV_PARSERS.get(f.type)
+                setattr(s, f.name, parse(env) if parse else (env or None))
         for k in ("classifier_checkpoint", "model_checkpoint", "label_vocab"):
             v = getattr(s, k)
             if v and not Path(v).is_absolute():
@@ -356,12 +362,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # ------------------------------------------------------------------ dataset
     @app.post("/prepare-dataset", status_code=202)
     def prepare(body: PrepareBody):
+        if not st.allow_dataset_preparation:
+            raise HTTPException(403, "Dataset preparation over the API is turned off. Use `python -m midicomposer.cli "
+                                     "prepare`, or set allow_dataset_preparation on a server only you use.")
         from ..dataset.prepare import ENV_ROOT, PrepareConfig, prepare_dataset
         root = body.xmidi_root or os.environ.get(ENV_ROOT)
         if not root or not Path(root).is_dir():
             raise HTTPException(422, f"Provide xmidi_root or set {ENV_ROOT} to an existing directory.")
-        out = body.out_dir if Path(body.out_dir).is_absolute() else str(ROOT / body.out_dir)
-        cfg = PrepareConfig(xmidi_root=root, out_dir=out, max_files=body.max_files, workers=body.workers)
+        out = (ROOT / body.out_dir).resolve()           # an absolute out_dir replaces ROOT here
+        if out == DATA_DIR or not out.is_relative_to(DATA_DIR):
+            raise HTTPException(422, "out_dir must be a folder inside the project's data/ directory.")
+        cfg = PrepareConfig(xmidi_root=root, out_dir=str(out), max_files=body.max_files, workers=body.workers)
         job = _start_job(store.open(anonymous=True), "prepare-dataset", lambda j: prepare_dataset(
             cfg, progress=lambda i, n: j.report(f"{i}/{n}")))
         return {"job_id": job.job_id, "status": job.status}

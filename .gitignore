@@ -5,6 +5,9 @@ __pycache__/
 XMIDI_Dataset/
 data/
 checkpoints/*.pt
+# the two models the deployed app loads; other checkpoints stay local
+!checkpoints/classifiers.pt
+!checkpoints/composer_dev.pt
 !checkpoints/README.md
 node_modules/
 /docs
