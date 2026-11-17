@@ -24,6 +24,8 @@ export function initialState() {
       variations: 3, seed: 0, engine: "rule",
     },
     trackRoles: {},               // track_id -> role override for the uploaded file
+    buildingFrom: null,           // {jobId, candidate} when the current input is a previous result ("Build on this")
+    preparingInput: false,        // "Build on this" request in flight
     generating: false,
     jobId: null,
     jobStatus: null,              // queued | running | done | error
@@ -104,6 +106,17 @@ export function canDownload(s) {
   return s.jobStatus === "done" && !s.generating && !!currentCandidate(s);
 }
 
+// "Build on this": the selected result becomes the (locked) input of a new MIDI-mode generation.
+export function buildOnBlockers(s) {
+  const out = [];
+  if (!currentCandidate(s) || s.jobStatus !== "done") out.push("Generate something first.");
+  if (s.generating) out.push("A job is running.");
+  if (s.preparingInput) out.push("Preparing the result as input.");
+  return out;
+}
+
+export const canBuildOn = (s) => buildOnBlockers(s).length === 0;
+
 export function regenerateTrackBlockers(s) {
   const out = [];
   const c = currentCandidate(s);
@@ -171,7 +184,21 @@ export function reduce(s, action) {
     case "fileSelected":
       // A new file invalidates the previous analysis and upload.
       n.file = action.file; n.analysis = null; n.uploadId = null; n.analysisError = null; n.trackRoles = {};
-      n.sessionNotice = null;
+      n.sessionNotice = null; n.buildingFrom = null;
+      return n;
+    case "buildOnStart":
+      n.preparingInput = true; n.jobError = null; return n;
+    case "buildOnError":
+      n.preparingInput = false; n.jobError = action.error; return n;
+    case "buildOnReady":
+      // Every track of the chosen result becomes a locked anchor; the user then picks which new stems to add.
+      n.preparingInput = false;
+      n.mode = "midi";
+      n.file = action.file; n.analysis = action.analysis; n.uploadId = action.uploadId; n.analysisError = null;
+      n.trackRoles = {}; n.sessionNotice = null;
+      n.buildingFrom = { jobId: action.jobId, candidate: action.candidate };
+      n.form.inputRole = "full_mix"; n.form.targetKey = ""; n.form.rootOverride = "";
+      n.form.generatedRoles = [];
       return n;
     case "analyzeStart":
       n.analyzing = true; n.analysisError = null; return n;

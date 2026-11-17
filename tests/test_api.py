@@ -44,7 +44,7 @@ def test_health_and_options(client):
 
 def test_web_ui_served(client):
     r = client.get("/")
-    assert r.status_code == 200 and "MIDI Composer" in r.text
+    assert r.status_code == 200 and "MIDI Magic" in r.text
     assert client.get("/ui-state.js").status_code == 200
 
 
@@ -161,3 +161,41 @@ def test_settings_from_environment(monkeypatch, tmp_path):
     assert s.model_checkpoint is None
     monkeypatch.setenv("MIDICOMPOSER_ALLOW_DATASET_PREPARATION", "1")
     assert Settings.load().allow_dataset_preparation is True
+
+
+def test_stems_zip_and_build_on_this(client):
+    import io
+    import zipfile
+
+    r = client.post("/generate", json={"mode": "metadata", "genre": "pop", "emotion": "happy", "key": "D",
+                                       "bars": 8, "n_variations": 1, "seed": 5,
+                                       "generated_roles": ["lead_melody", "bass_line", "drums"]})
+    j = wait(client, r.json()["job_id"])
+    assert j["status"] == "done", j
+    job_id = j["result"]["job_id"]
+    tracks = [t for t in j["result"]["candidates"][0]["tracks"] if t["n_notes"]]
+
+    # One MIDI per non-empty track, plus the full arrangement; every file parses.
+    z = client.get(f"/generation/{job_id}/stems", params={"candidate": 0})
+    assert z.status_code == 200 and z.headers["content-type"] == "application/zip"
+    names = zipfile.ZipFile(io.BytesIO(z.content)).namelist()
+    stems = [n for n in names if n.startswith("stems/")]
+    assert len(stems) == len(tracks) and any(n.endswith("_full.mid") for n in names)
+    with zipfile.ZipFile(io.BytesIO(z.content)) as zf:
+        for n in stems:
+            assert len(load_midi(zf.read(n)).tracks) == 1
+    assert client.get(f"/generation/{job_id}/stems", params={"candidate": 9}).status_code == 404
+
+    # "Build on this": the candidate becomes an upload whose tracks anchor the next generation.
+    b = client.post(f"/generation/{job_id}/as-input", json={"candidate": 0})
+    assert b.status_code == 200, b.text
+    up = b.json()
+    assert up["upload_id"] and len(up["analysis"]["tracks"]) == len(tracks)
+    r2 = client.post("/generate", json={"mode": "midi", "upload_id": up["upload_id"], "input_role": "full_mix",
+                                        "generated_roles": ["pad"], "n_variations": 1})
+    j2 = wait(client, r2.json()["job_id"])
+    assert j2["status"] == "done", j2
+    out = j2["result"]["candidates"][0]["tracks"]
+    assert sum(t["source"] == "input" for t in out) == len(tracks)
+    assert any(t["source"] == "generated" and t["role"] == "pad" for t in out)
+    assert client.post(f"/generation/{job_id}/as-input", json={"candidate": 3}).status_code == 404

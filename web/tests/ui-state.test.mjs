@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  buildGenerateBody, canAnalyze, canDownload, canGenerate, canRegenerateSection, canRegenerateTrack,
+  buildGenerateBody, canAnalyze, canBuildOn, canDownload, canGenerate, canRegenerateSection, canRegenerateTrack,
   generateBlockers, initialState, reduce,
 } from "../ui-state.js";
 
@@ -185,4 +185,36 @@ test("an expired session interrupts a running job", () => {
   assert.equal(canGenerate(s), true);
   s = reduce(s, { type: "generateStart" });
   assert.equal(s.sessionNotice, null);
+});
+
+test("build on this turns a result into a locked MIDI input and asks for new roles", () => {
+  let s = reduce(connected(), { type: "setMode", mode: "metadata" });
+  assert.equal(canBuildOn(s), false);                    // nothing generated yet
+  s = reduce(s, { type: "generateStart" });
+  s = reduce(s, { type: "jobDone", jobId: "j1", result: RESULT });
+  assert.equal(canBuildOn(s), true);
+  s = reduce(s, { type: "buildOnStart" });
+  assert.equal(canBuildOn(s), false);
+  s = reduce(s, { type: "buildOnReady", jobId: "j1", candidate: 0, uploadId: "u9",
+    file: { name: "j1_candidate_1.mid", size: 100 }, analysis: ANALYSIS });
+  assert.equal(s.mode, "midi");
+  assert.equal(s.form.inputRole, "full_mix");
+  assert.deepEqual(s.buildingFrom, { jobId: "j1", candidate: 0 });
+  assert.ok(generateBlockers(s).some((m) => m.includes("at least one role")));
+  s = reduce(s, { type: "toggleRole", role: "pad" });
+  assert.equal(canGenerate(s), true);
+  const b = buildGenerateBody(s);
+  assert.equal(b.upload_id, "u9");
+  assert.equal(b.input_role, "full_mix");
+  assert.deepEqual(b.generated_roles, ["pad"]);
+  s = reduce(s, { type: "fileSelected", file: { name: "other.mid", size: 5 } });
+  assert.equal(s.buildingFrom, null);                    // a new file replaces the built-on result
+});
+
+test("a failed build-on request is reported and can be retried", () => {
+  let s = reduce(ready(), { type: "jobDone", jobId: "j1", result: RESULT });
+  s = reduce(s, { type: "buildOnStart" });
+  s = reduce(s, { type: "buildOnError", error: "nope" });
+  assert.equal(s.jobError, "nope");
+  assert.equal(canBuildOn(s), true);
 });

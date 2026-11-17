@@ -30,6 +30,7 @@ from ..generation.pipeline import (GenerationError, GenerationRequest, Generatio
                                    regenerate_track, run_generation, set_track_lock)
 from ..midi_io import MidiLoadError, load_midi
 from ..roles import GENERATED_ROLES, INPUT_ROLES, normalize_input_role
+from ..stems import stems_zip
 from ..styles import PRESETS
 from ..theory import MODES, PITCH_NAMES
 from .jobs import Job, JobManager, new_id
@@ -124,6 +125,10 @@ class RegenerateSectionBody(BaseModel):
     seed: int | None = None
 
 
+class CandidateBody(BaseModel):
+    candidate: int = 0
+
+
 class LockBody(BaseModel):
     track_id: int
     locked: bool
@@ -161,7 +166,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             store.clear()
             jobs.shutdown()
 
-    app = FastAPI(title="MIDI Composer", version=__version__, lifespan=lifespan,
+    app = FastAPI(title="MIDI Magic", version=__version__, lifespan=lifespan,
                   description="Conditional symbolic-music composition with root-relative MIDI normalization.")
 
     @app.middleware("http")
@@ -321,6 +326,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         name = f"{job_id}_candidate_{candidate + 1}_seed{state.candidates[candidate].seed}.mid"
         return Response(state.midi_bytes(candidate), media_type="audio/midi",
                         headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    @app.get("/generation/{job_id}/stems")
+    def download_stems(job_id: str, candidate: int = Query(0, ge=0), _caller: Session | None = Depends(live_session)):
+        """Zip of the full arrangement plus one MIDI file per track."""
+        state = _finished_state(job_id)
+        if candidate >= len(state.candidates):
+            raise HTTPException(404, "candidate index out of range")
+        cand = state.candidates[candidate]
+        prefix = f"{job_id}_candidate_{candidate + 1}_seed{cand.seed}"
+        data = stems_zip(cand.score, cand.midi, prefix, cand.role_of_track)
+        return Response(data, media_type="application/zip",
+                        headers={"Content-Disposition": f'attachment; filename="{prefix}_stems.zip"'})
+
+    @app.post("/generation/{job_id}/as-input")
+    def use_as_input(job_id: str, body: CandidateBody, caller: Session | None = Depends(live_session)):
+        """'Build on this': turn a finished candidate into a new upload, analysed as a full mix.
+
+        Its tracks then become locked anchors for the next generation, so new stems fit what already exists.
+        """
+        state = _finished_state(job_id)
+        if not 0 <= body.candidate < len(state.candidates):
+            raise HTTPException(404, "candidate index out of range")
+        data = state.midi_bytes(body.candidate)
+        name = f"{job_id}_candidate_{body.candidate + 1}.mid"
+        try:
+            analysis = analyze_score(load_midi(data), input_role=normalize_input_role("full_mix"))
+        except (MidiLoadError, ValueError) as e:
+            raise HTTPException(422, str(e))
+        try:
+            upload = store.add_upload(caller or store.open(anonymous=True), data, name)
+        except SessionClosed:
+            raise HTTPException(410, SESSION_GONE)
+        return {"upload_id": upload.upload_id, "filename": name, "size": len(data), "analysis": analysis}
 
     @app.get("/generation/{job_id}/manifest")
     def manifest(job_id: str, _caller: Session | None = Depends(live_session)):
