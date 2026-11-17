@@ -6,7 +6,7 @@ export const MAX_BARS = 256;
 
 export function initialState() {
   return {
-    mode: "midi",                 // "midi" (mode 1) | "metadata" (mode 2)
+    mode: "midi",                 // "midi" (mode 1) | "metadata" (mode 2) | "prompt" (text -> metadata settings)
     options: null,                // from GET /options
     optionsError: null,
     sessionId: null,              // held only in this page, so a refresh starts a new session
@@ -26,6 +26,15 @@ export function initialState() {
     trackRoles: {},               // track_id -> role override for the uploaded file
     buildingFrom: null,           // {jobId, candidate} when the current input is a previous result ("Build on this")
     preparingInput: false,        // "Build on this" request in flight
+    prompt: "",                   // text prompt (prompt mode)
+    interpreting: false,
+    interpretation: null,         // POST /plan-from-text result
+    interpretedPrompt: null,      // the prompt text that `interpretation` belongs to
+    interpretError: null,
+    critique: null,               // GET /generation/{id}/critique result for critiqueKey
+    critiqueKey: null,            // "jobId:candidate"
+    critiqueLoading: false,
+    critiqueError: null,
     generating: false,
     jobId: null,
     jobStatus: null,              // queued | running | done | error
@@ -86,6 +95,10 @@ export function generateBlockers(s) {
     }
     if (!s.form.inputRole) out.push("Choose the input role.");
   } else {
+    if (s.mode === "prompt") {
+      if (!s.interpretation) out.push(s.prompt.trim() ? "Press Interpret to turn your prompt into settings." : "Describe the music you want.");
+      else if (s.prompt.trim() !== s.interpretedPrompt) out.push("The prompt changed: press Interpret again.");
+    }
     if (!s.form.genre) out.push("Choose a genre.");
     if (!s.form.emotion) out.push("Choose an emotion.");
     if (!s.form.key) out.push("Choose a key/root.");
@@ -116,6 +129,37 @@ export function buildOnBlockers(s) {
 }
 
 export const canBuildOn = (s) => buildOnBlockers(s).length === 0;
+
+export function interpretBlockers(s) {
+  const out = [];
+  if (!s.sessionId) out.push("Connecting to the server.");
+  if (!s.prompt.trim()) out.push("Describe the music you want.");
+  if (s.interpreting) out.push("Interpreting…");
+  if (s.generating) out.push("Wait for the current generation to finish.");
+  return out;
+}
+
+export const canInterpret = (s) => interpretBlockers(s).length === 0;
+
+export const critiqueKey = (s) => (s.jobId != null && s.result ? `${s.jobId}:${s.selectedCandidate}` : null);
+
+// Server plan settings -> form fields (null means "leave as is").
+const SETTING_FIELDS = { genre: "genre", emotion: "emotion", key: "key", scale_mode: "scaleMode", tempo: "tempo",
+  bars: "bars", form: "form", instrumentation: "instrumentation", density: "density", generated_roles: "generatedRoles" };
+
+export function applySettings(form, settings, options) {
+  const f = { ...form };
+  for (const [k, field] of Object.entries(SETTING_FIELDS)) {
+    const v = settings[k];
+    if (v === null || v === undefined) continue;
+    if (k === "genre" && options && !options.genres.includes(v)) continue;
+    if (k === "emotion" && options && !options.emotions.includes(v)) continue;
+    if (k === "generated_roles") f[field] = [...v];
+    else if (k === "tempo" || k === "bars") f[field] = String(v);
+    else f[field] = v;
+  }
+  return f;
+}
 
 export function regenerateTrackBlockers(s) {
   const out = [];
@@ -149,7 +193,7 @@ export const canRegenerateSection = (s) => regenerateSectionBlockers(s).length =
 export function buildGenerateBody(s) {
   const f = s.form;
   const body = {
-    mode: s.mode, genre: f.genre || null, emotion: f.emotion || null, key: f.key || null,
+    mode: s.mode === "midi" ? "midi" : "metadata", genre: f.genre || null, emotion: f.emotion || null, key: f.key || null,
     scale_mode: f.scaleMode || null, tempo: f.tempo === "" ? null : Number(f.tempo), meter: f.meter,
     bars: f.bars === "" ? null : Number(f.bars), density: Number(f.density),
     instrumentation: f.instrumentation || null, form: f.form === "auto" ? null : f.form,
@@ -164,6 +208,14 @@ export function buildGenerateBody(s) {
     if (Object.keys(s.trackRoles).length) body.track_roles = { ...s.trackRoles };
   }
   return body;
+}
+
+// The emotion reader's top emotion/genre for an uploaded MIDI become the generation's emotion/genre.
+function applyDetectedStyle(form, analysis, options) {
+  const st = analysis && analysis.style;
+  if (!st) return form;
+  const top = (list) => (list && list.length ? list[0].label : null);
+  return applySettings(form, { emotion: top(st.emotion), genre: top(st.genre) }, options);
 }
 
 // Reducer: every UI event goes through here so behaviour is testable.
@@ -199,11 +251,31 @@ export function reduce(s, action) {
       n.buildingFrom = { jobId: action.jobId, candidate: action.candidate };
       n.form.inputRole = "full_mix"; n.form.targetKey = ""; n.form.rootOverride = "";
       n.form.generatedRoles = [];
+      n.form = applyDetectedStyle(n.form, action.analysis, s.options);
       return n;
+    case "setPrompt":
+      n.prompt = action.value; return n;
+    case "interpretStart":
+      n.interpreting = true; n.interpretError = null; return n;
+    case "interpretSuccess":
+      n.interpreting = false; n.interpretation = action.plan; n.interpretedPrompt = action.prompt.trim();
+      n.form = applySettings(n.form, action.plan.settings, s.options);
+      return n;
+    case "interpretError":
+      n.interpreting = false; n.interpretError = action.error; return n;
+    case "critiqueStart":
+      n.critiqueLoading = true; n.critiqueError = null; n.critiqueKey = action.key; n.critique = null; return n;
+    case "critiqueReady":
+      if (action.key !== s.critiqueKey) return s;           // a stale answer for another job/candidate
+      n.critiqueLoading = false; n.critique = action.critique; return n;
+    case "critiqueError":
+      if (action.key !== s.critiqueKey) return s;
+      n.critiqueLoading = false; n.critiqueError = action.error; return n;
     case "analyzeStart":
       n.analyzing = true; n.analysisError = null; return n;
     case "analyzeSuccess":
       n.analyzing = false; n.analysis = action.analysis; n.uploadId = action.uploadId; n.analysisError = null;
+      n.form = applyDetectedStyle(n.form, action.analysis, s.options);
       return n;
     case "analyzeError":
       n.analyzing = false; n.analysis = null; n.uploadId = null; n.analysisError = action.error; return n;
@@ -236,6 +308,7 @@ export function reduce(s, action) {
     case "selectSection":
       n.selectedSection = action.index; return n;
     case "trackLocked": {
+      n.critiqueKey = null;                                  // the critic's suggested actions depend on locks
       const c = currentCandidate(n);
       if (c) {
         n.result = { ...n.result, candidates: n.result.candidates.map((cand, i) => i !== n.selectedCandidate ? cand : {

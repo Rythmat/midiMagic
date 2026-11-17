@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from starlette.formparsers import MultiPartParser
 
 from .. import __version__
+from ..agents import critique, plan_from_text, read_emotion
 from ..analyzer import analyze_score
 from ..classifiers import load_scorer
 from ..generation.neural import load_neural_generator
@@ -30,6 +31,7 @@ from ..generation.pipeline import (GenerationError, GenerationRequest, Generatio
                                    regenerate_track, run_generation, set_track_lock)
 from ..midi_io import MidiLoadError, load_midi
 from ..roles import GENERATED_ROLES, INPUT_ROLES, normalize_input_role
+from ..root import detect_root
 from ..stems import stems_zip
 from ..styles import PRESETS
 from ..theory import MODES, PITCH_NAMES
@@ -123,6 +125,10 @@ class RegenerateSectionBody(BaseModel):
     end_bar: int | None = None
     track_ids: list[int] | None = None
     seed: int | None = None
+
+
+class PromptBody(BaseModel):
+    prompt: str = Field(..., max_length=2000)
 
 
 class CandidateBody(BaseModel):
@@ -240,14 +246,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def close_session(session_id: str):
         store.close(session_id)
 
-    @app.get("/options")
-    def options():
-        genres, emotions, source = XMIDI_DEFAULT_GENRES, XMIDI_DEFAULT_EMOTIONS, "built-in XMIDI defaults"
+    def _labels() -> tuple[list[str], list[str], str]:
         if st.label_vocab and Path(st.label_vocab).exists():
             lv = json.loads(Path(st.label_vocab).read_text())
-            genres = [g["label"] for g in lv["genres"]]
-            emotions = [e["label"] for e in lv["emotions"]]
-            source = st.label_vocab
+            return [g["label"] for g in lv["genres"]], [e["label"] for e in lv["emotions"]], st.label_vocab
+        return XMIDI_DEFAULT_GENRES, XMIDI_DEFAULT_EMOTIONS, "built-in XMIDI defaults"
+
+    @app.get("/options")
+    def options():
+        genres, emotions, source = _labels()
         neural = load_neural_generator(st.model_checkpoint)
         clf = load_scorer(st.classifier_checkpoint)
         return {
@@ -260,9 +267,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "engines": {"rule": True, "neural": neural is not None, "hybrid": neural is not None},
             "neural_model": neural.describe() if neural else None,
             "classifier": {"test_metrics": clf.metrics.get("test")} if clf else None,
+            # Which implementation each agent uses ("keywords"/"rules"/"heuristic" baselines, or an LLM later).
+            "agents": {"text_planner": "keywords", "critic": "rules",
+                       "emotion_reader": "classifier" if clf else "heuristic"},
         }
 
+    @app.post("/plan-from-text")
+    def plan_text(body: PromptBody, _caller: Session | None = Depends(live_session)):
+        text = body.prompt.strip()
+        if not text:
+            raise HTTPException(422, "Write a prompt first.")
+        genres, emotions, _ = _labels()
+        return plan_from_text(text, genres, emotions)
+
     # ------------------------------------------------------------------ analysis
+    def _read_style(score, root_override=None) -> dict:
+        """Emotion reader: detected emotion/genre of an input, used to pre-fill the generation settings."""
+        try:
+            root = detect_root(score, override=root_override or None)
+        except ValueError:
+            root = detect_root(score)
+        return read_emotion(score, root, load_scorer(st.classifier_checkpoint), _labels()[1])
+
     @app.post("/analyze-midi")
     async def analyze_midi(file: UploadFile = File(...), root_override: str | None = Form(None),
                            input_role: str | None = Form(None), caller: Session | None = Depends(live_session)):
@@ -282,6 +308,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             analysis = analyze_score(score, root_override=root_override or None, input_role=role)
         except ValueError as e:
             raise HTTPException(422, str(e))
+        analysis["style"] = _read_style(score, root_override)
         try:
             upload = store.add_upload(caller or store.open(anonymous=True), data, file.filename)
         except SessionClosed:
@@ -351,14 +378,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         data = state.midi_bytes(body.candidate)
         name = f"{job_id}_candidate_{body.candidate + 1}.mid"
         try:
-            analysis = analyze_score(load_midi(data), input_role=normalize_input_role("full_mix"))
+            score = load_midi(data)
+            analysis = analyze_score(score, input_role=normalize_input_role("full_mix"))
         except (MidiLoadError, ValueError) as e:
             raise HTTPException(422, str(e))
+        analysis["style"] = _read_style(score)
         try:
             upload = store.add_upload(caller or store.open(anonymous=True), data, name)
         except SessionClosed:
             raise HTTPException(410, SESSION_GONE)
         return {"upload_id": upload.upload_id, "filename": name, "size": len(data), "analysis": analysis}
+
+    @app.get("/generation/{job_id}/critique")
+    def critic(job_id: str, candidate: int = Query(0, ge=0), _caller: Session | None = Depends(live_session)):
+        """Critic: feedback on instrumentation, arrangement and section transitions, with suggested actions."""
+        state = _finished_state(job_id)
+        if candidate >= len(state.candidates):
+            raise HTTPException(404, "candidate index out of range")
+        return critique(state.view(), candidate)
 
     @app.get("/generation/{job_id}/manifest")
     def manifest(job_id: str, _caller: Session | None = Depends(live_session)):

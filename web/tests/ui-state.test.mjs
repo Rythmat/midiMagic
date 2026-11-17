@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  buildGenerateBody, canAnalyze, canBuildOn, canDownload, canGenerate, canRegenerateSection, canRegenerateTrack,
+  buildGenerateBody, canAnalyze, canBuildOn, canDownload, canGenerate, canRegenerateSection, canRegenerateTrack, critiqueKey,
   generateBlockers, initialState, reduce,
 } from "../ui-state.js";
 
@@ -217,4 +217,50 @@ test("a failed build-on request is reported and can be retried", () => {
   s = reduce(s, { type: "buildOnError", error: "nope" });
   assert.equal(s.jobError, "nope");
   assert.equal(canBuildOn(s), true);
+});
+
+test("prompt mode needs an interpretation of the current prompt, then sends metadata settings", () => {
+  const opts = { genres: ["pop", "classical"], emotions: ["happy", "sad"] };
+  let s = reduce(reduce(initialState(), { type: "optionsLoaded", options: opts }), { type: "sessionReady", sessionId: "s1" });
+  s = reduce(s, { type: "setMode", mode: "prompt" });
+  assert.ok(generateBlockers(s).some((m) => m.includes("Describe")));
+  s = reduce(s, { type: "setPrompt", value: "sad piano in D minor" });
+  assert.equal(canGenerate(s), false);
+  s = reduce(s, { type: "interpretStart" });
+  s = reduce(s, { type: "interpretSuccess", prompt: "sad piano in D minor ", plan: { settings: {
+    genre: "jazz", emotion: "sad", key: "D", scale_mode: "minor", tempo: 76, bars: 16, form: null,
+    instrumentation: "piano", density: null, generated_roles: ["full_composition"] } } });
+  assert.equal(canGenerate(s), true);
+  assert.equal(s.form.emotion, "sad");
+  assert.equal(s.form.genre, "pop");                     // unknown label "jazz" is not applied
+  assert.equal(s.form.tempo, "76");
+  const b = buildGenerateBody(s);
+  assert.equal(b.mode, "metadata");
+  assert.equal(b.scale_mode, "minor");
+  assert.equal(b.bars, 16);
+  s = reduce(s, { type: "setPrompt", value: "happy pop" });
+  assert.ok(generateBlockers(s).some((m) => m.includes("Interpret again")));
+});
+
+test("the detected emotion and genre of an upload drive generation", () => {
+  const opts = { genres: ["pop", "jazz"], emotions: ["happy", "sad"] };
+  let s = reduce(connected(), { type: "optionsLoaded", options: opts });
+  s = reduce(s, { type: "fileSelected", file: { name: "a.mid", size: 1 } });
+  s = reduce(s, { type: "analyzeSuccess", uploadId: "u1", analysis: { ...ANALYSIS,
+    style: { source: "classifier", emotion: [{ label: "sad", score: 0.6 }], genre: [{ label: "jazz", score: 0.5 }] } } });
+  assert.equal(s.form.emotion, "sad");
+  assert.equal(s.form.genre, "jazz");
+  assert.equal(buildGenerateBody(s).emotion, "sad");
+});
+
+test("critique answers are keyed to the job and candidate they were asked for", () => {
+  let s = reduce(ready(), { type: "jobDone", jobId: "j1", result: RESULT });
+  assert.equal(critiqueKey(s), "j1:0");
+  s = reduce(s, { type: "critiqueStart", key: "j1:0" });
+  s = reduce(s, { type: "critiqueReady", key: "old:0", critique: { notes: [] } });
+  assert.equal(s.critique, null);                        // stale answer ignored
+  s = reduce(s, { type: "critiqueReady", key: "j1:0", critique: { notes: [1] } });
+  assert.deepEqual(s.critique, { notes: [1] });
+  s = reduce(s, { type: "trackLocked", trackId: 1, locked: true });
+  assert.equal(s.critiqueKey, null);                     // locks change the critic's actions: ask again
 });
