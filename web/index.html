@@ -20,8 +20,19 @@
   <!-- ============================== controls -->
   <section class="panel controls" aria-label="Generation settings">
     <div class="tabs" role="tablist">
+      <button role="tab" id="tab-prompt" class="tab" data-mode="prompt">From prompt</button>
       <button role="tab" id="tab-midi" class="tab active" data-mode="midi">From MIDI</button>
-      <button role="tab" id="tab-metadata" class="tab" data-mode="metadata">From metadata</button>
+      <button role="tab" id="tab-metadata" class="tab" data-mode="metadata">From settings</button>
+    </div>
+
+    <div id="prompt-controls" hidden>
+      <label class="field">Describe the music
+        <textarea id="prompt" rows="4" maxlength="2000"
+          placeholder="e.g. A sad, slow piano and cello piece in D minor, 16 bars"></textarea>
+      </label>
+      <button id="interpret" class="secondary" disabled>Interpret prompt</button>
+      <p id="interpret-hint" class="hint"></p>
+      <div id="interpretation" class="notice" hidden></div>
     </div>
 
     <div id="midi-controls">
@@ -94,7 +105,10 @@
       <h2>Start here</h2>
       <p><b>From MIDI:</b> choose a MIDI file. It is analyzed automatically (root, key, tempo, meter, tracks and roles);
         then pick the roles to generate and press Generate.</p>
-      <p><b>From metadata:</b> choose genre, emotion, key, tempo, length and instrumentation, then press Generate.</p>
+      <p><b>From prompt:</b> describe the music in words, press Interpret to turn it into settings, adjust them if
+        you like, then press Generate.</p>
+      <p><b>From settings:</b> choose genre, emotion, key, tempo, length and instrumentation, then press Generate.</p>
+      <p>After generating, the <b>Critic</b> gives feedback on instrumentation and sections, with one-click fixes.</p>
       <p class="muted">Results, scores, a piano roll, per-track regeneration and downloads appear here.
         Nothing is stored: uploads and results exist only while this page is open, and closing or refreshing it
         discards them.</p>
@@ -147,6 +161,8 @@
         <button id="regen-section" class="secondary" disabled>Regenerate selected section</button>
         <span id="regen-section-hint" class="hint inline"></span>
       </div>
+      <h3>Critic <span id="critic-source" class="muted small"></span></h3>
+      <div id="critic" class="critic" aria-live="polite"></div>
       <h3>Keep building</h3>
       <div class="buttons">
         <button id="build-on" class="secondary" disabled>Build on this →</button>

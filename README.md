@@ -274,10 +274,29 @@ channel assignment.
 | `GET /generation/{job_id}` | Status, progress, and the full result when done |
 | `GET /generation/{job_id}/download?candidate=N` | MIDI file (409 while running, 404 once its session has ended) |
 | `GET /generation/{job_id}/manifest` | Generation manifest |
+| `GET /generation/{job_id}/stems?candidate=N` | Zip: the full arrangement plus one MIDI file per track |
+| `POST /generation/{job_id}/as-input` | `{candidate}` → a new `upload_id` + analysis ("Build on this": the result becomes the locked input) |
+| `POST /plan-from-text` | `{prompt}` → **text planner**: `{source, prompt, settings, emotion_scores, explanation, unmatched}` |
+| `GET /generation/{job_id}/critique?candidate=N` | **Critic**: `{source, summary, notes: [{kind, severity, message, action}]}` |
 | `POST /regenerate-track` | `{job_id, candidate, track_id, seed?}` → new job; other tracks unchanged |
 | `POST /regenerate-section` | `{job_id, candidate, section_index \| start_bar+end_bar, track_ids?, seed?}` → new job; locked tracks unchanged |
 | `POST /generation/{job_id}/lock` | `{candidate, track_id, locked}`; input tracks are always locked |
 | `POST /prepare-dataset` | `{xmidi_root?, out_dir, max_files}` → background preprocessing job (`GET /jobs/{id}`). Off (403) unless `allow_dataset_preparation` is set; `out_dir` must be inside `data/` |
+
+`POST /analyze-midi` and `as-input` also return the **emotion reader**'s output as `analysis.style`
+(`{source, emotion: [{label, score}], genre: [{label, score}]}`, top 3 each); the UI uses the top emotion and genre
+for generation. `GET /options` reports which implementation each agent uses under `agents`.
+
+### Agents (text planner, emotion reader, critic)
+
+`midicomposer/agents.py` holds the agentic layer from the proposal. Each agent has a deterministic baseline, so the
+app works without an LLM or API key: the **text planner** maps prompt keywords onto the generator's settings, the
+**emotion reader** uses the trained classifier (or a mode/energy heuristic without it), and the **critic** applies
+music rules (duplicate timbres, crowded registers, missing bass/drums/lead, silent parts, flat or abrupt section
+transitions, missing bridge, energy shape, emotion fit). An LLM version should replace `plan_from_text` /
+`critique` and return the same JSON (documented at the top of `agents.py`), then set its name in
+`/options → agents`. Critic actions are limited to `regenerate_track` and `regenerate_section`, which the UI runs
+with one click.
 
 A request whose `X-Session-Id` has ended gets **410**. Interactive docs: <http://127.0.0.1:8000/docs>.
 

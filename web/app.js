@@ -1,8 +1,8 @@
 // DOM layer: renders from the pure state in ui-state.js and talks to the API.
 import {
   analyzeBlockers, buildGenerateBody, buildOnBlockers, canAnalyze, canBuildOn, canDownload, canGenerate,
-  canRegenerateSection, canRegenerateTrack, currentCandidate, generateBlockers, initialState, reduce,
-  regenerateSectionBlockers, regenerateTrackBlockers,
+  canInterpret, canRegenerateSection, canRegenerateTrack, critiqueKey, currentCandidate, generateBlockers,
+  initialState, interpretBlockers, reduce, regenerateSectionBlockers, regenerateTrackBlockers,
 } from "./ui-state.js";
 import { drawRoll, trackColor } from "./pianoroll.js";
 import { play, stopPlayback } from "./audio.js";
@@ -15,6 +15,7 @@ let state = initialState();
 function dispatch(action) {
   state = reduce(state, action);
   render();
+  maybeCritique();
 }
 
 class SessionExpired extends Error {}
@@ -162,6 +163,7 @@ async function analyze() {
   try {
     const r = await api("/analyze-midi", { method: "POST", body: fd });
     dispatch({ type: "analyzeSuccess", analysis: r.analysis, uploadId: r.upload_id });
+    syncFormFields();                    // the detected emotion/genre now drive generation
   } catch (e) {
     if (!(e instanceof SessionExpired)) dispatch({ type: "analyzeError", error: e.message });
   }
@@ -220,6 +222,42 @@ async function toggleLock(trackId, locked) {
   }
 }
 
+// Text planner: the prompt becomes generation settings, which then show (editable) in the form below.
+async function interpret() {
+  if (!canInterpret(state)) return;
+  const prompt = state.prompt;
+  dispatch({ type: "interpretStart" });
+  try {
+    const plan = await api("/plan-from-text", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }) });
+    dispatch({ type: "interpretSuccess", plan, prompt });
+    syncFormFields();
+  } catch (e) {
+    if (!(e instanceof SessionExpired)) dispatch({ type: "interpretError", error: e.message });
+  }
+}
+
+// Critic: fetched whenever a different job/candidate is shown (or its locks change).
+function maybeCritique() {
+  const key = critiqueKey(state);
+  if (!key || key === state.critiqueKey || state.jobStatus !== "done" || state.generating) return;
+  const [jobId, candidate] = key.split(":");
+  dispatch({ type: "critiqueStart", key });
+  api(`/generation/${jobId}/critique?candidate=${candidate}`)
+    .then((critique) => dispatch({ type: "critiqueReady", key, critique }))
+    .catch((e) => { if (!(e instanceof SessionExpired)) dispatch({ type: "critiqueError", key, error: e.message }); });
+}
+
+function runCriticAction(action) {
+  if (action.type === "regenerate_track") {
+    dispatch({ type: "selectTrack", trackId: action.track_id });
+    regenTrack();
+  } else if (action.type === "regenerate_section") {
+    dispatch({ type: "selectSection", index: action.section_index });
+    regenSection();
+  }
+}
+
 // Fetched as a blob so that saving a file never navigates, which could look like leaving the page.
 function download() {
   if (!canDownload(state)) return;
@@ -249,8 +287,7 @@ async function buildOn() {
     $("file").value = "";
     dispatch({ type: "buildOnReady", jobId, candidate, uploadId: r.upload_id, analysis: r.analysis,
       file: { name: r.filename, size: r.size } });
-    $("inputRole").value = state.form.inputRole;
-    $("targetKey").value = ""; $("rootOverride").value = "";
+    syncFormFields();
     document.querySelector(".controls").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
     if (!(e instanceof SessionExpired)) dispatch({ type: "buildOnError", error: e.message });
@@ -295,8 +332,16 @@ function renderAnalysis() {
     ["Method", r.root_detection_method], ["Tempo", `${a.tempo_bpm} BPM`], ["Meter", a.meter],
     ["Bars", a.n_bars], ["Duration", `${a.duration_seconds}s`],
   ];
+  const style = a.style;
+  const pct = (l) => l.map((x) => `${escapeHtml(x.label.replace(/_/g, " "))} ${Math.round(x.score * 100)}%`).join(" · ");
+  if (style && style.emotion && style.emotion.length) items.push(["Detected emotion", pct(style.emotion)]);
+  if (style && style.genre && style.genre.length) items.push(["Detected genre", pct(style.genre)]);
   facts.innerHTML = items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
   const warn = $("root-warning");
+  const usedStyle = style && style.emotion && style.emotion.length
+    ? `<div class="wide"><dt>Used for generation</dt><dd>emotion: ${escapeHtml(state.form.emotion)}, genre: ${escapeHtml(state.form.genre)}
+       <span class="muted">(from the ${escapeHtml(style.source)} — change it under From settings)</span></dd></div>` : "";
+  facts.insertAdjacentHTML("beforeend", usedStyle);
   if (r.root_pitch_class === null) {
     warn.hidden = false; warn.textContent = "Root could not be determined. Choose a manual root and re-analyze (or just generate with the override).";
   } else if (r.ambiguous) {
@@ -359,6 +404,7 @@ function renderResult() {
   $("warnings").innerHTML = all.length ? all.join("") : `<li>Validation passed with no warnings.</li>`;
   const barBeats = res.meter ? (Number(res.meter.split("/")[0]) * 4) / Number(res.meter.split("/")[1]) : 4;
   drawRoll($("roll"), c, { totalBeats: res.total_beats, barBeats, sections, selectedTrack: state.selectedTrack });
+  renderCritic();
 }
 
 function render() {
@@ -367,10 +413,15 @@ function render() {
   $("session-notice").textContent = state.sessionNotice || "";
   $("empty-state").hidden = !!(state.result || state.jobStatus || state.jobError || state.analysis || state.analyzing
     || state.analysisError);
-  $("tab-midi").classList.toggle("active", midi);
-  $("tab-metadata").classList.toggle("active", !midi);
+  const promptMode = state.mode === "prompt";
+  for (const t of document.querySelectorAll(".tab")) {
+    t.classList.toggle("active", t.dataset.mode === state.mode);
+    t.setAttribute("aria-selected", String(t.dataset.mode === state.mode));
+  }
   $("midi-controls").hidden = !midi;
   $("metadata-controls").hidden = midi;
+  $("prompt-controls").hidden = !promptMode;
+  renderPrompt();
   document.querySelectorAll("#roles .chip").forEach((c) => {
     const on = state.form.generatedRoles.includes(c.dataset.role);
     c.classList.toggle("on", on); c.setAttribute("aria-checked", String(on));
@@ -402,11 +453,62 @@ function render() {
   renderResult();
 }
 
+function renderPrompt() {
+  const ib = interpretBlockers(state);
+  setButton($("interpret"), canInterpret(state), ib);
+  $("interpret").textContent = state.interpreting ? "Interpreting…" : "Interpret prompt";
+  $("interpret-hint").textContent = state.interpretError ? `Couldn't interpret: ${state.interpretError}` : "";
+  const p = state.interpretation;
+  const box = $("interpretation");
+  box.hidden = !p;
+  if (!p) return;
+  const stale = state.prompt.trim() !== state.interpretedPrompt;
+  const heard = p.explanation.length ? p.explanation.map((e) => `<li>${escapeHtml(e)}</li>`).join("")
+    : "<li>No musical keywords recognised.</li>";
+  const missing = p.unmatched.length
+    ? `<p class="muted">No ${p.unmatched.join(" or ")} found in the prompt, so the current ${p.unmatched.join("/")} setting is kept.</p>` : "";
+  box.innerHTML = `<b>${stale ? "Interpretation of the previous prompt" : "Interpretation"}</b>
+    <span class="muted">(${escapeHtml(p.source)})</span><ul>${heard}</ul>${missing}
+    <p class="muted">These settings are filled in below. Adjust anything, then press Generate.</p>`;
+}
+
+function renderCritic() {
+  const box = $("critic");
+  const key = critiqueKey(state);
+  const fresh = key && key === state.critiqueKey;
+  $("critic-source").textContent = fresh && state.critique ? `(${state.critique.source})` : "";
+  if (!fresh || state.critiqueLoading) { box.innerHTML = `<p class="hint">Listening to this candidate…</p>`; return; }
+  if (state.critiqueError) { box.innerHTML = `<p class="hint">Critic unavailable: ${escapeHtml(state.critiqueError)}</p>`; return; }
+  const c = state.critique;
+  if (!c) { box.innerHTML = ""; return; }
+  box.innerHTML = `<p class="small">${escapeHtml(c.summary)}</p>` + c.notes.map((n, i) => `<div class="note">
+      <span class="tag ${n.severity}">${escapeHtml(n.kind)}</span>
+      <span class="msg">${escapeHtml(n.message)}</span>
+      ${n.action ? `<button class="secondary" data-note="${i}" ${state.generating ? "disabled" : ""}>${escapeHtml(n.action.label)}</button>` : ""}
+    </div>`).join("");
+  box.querySelectorAll("button[data-note]").forEach((b) => {
+    b.onclick = () => runCriticAction(c.notes[Number(b.dataset.note)].action);
+  });
+}
+
+// Push state.form into the inputs (after the prompt interpreter or the emotion reader changed it).
+function syncFormFields() {
+  for (const [id, field] of FIELDS) {
+    const v = state.form[field];
+    $(id).value = v === null || v === undefined ? "" : v;
+  }
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
 
 // ------------------------------------------------------------------ wiring
+// [element id, form field] for every plain input/select.
+const FIELDS = [["inputRole", "inputRole"], ["rootOverride", "rootOverride"], ["targetKey", "targetKey"],
+  ["genre", "genre"], ["emotion", "emotion"], ["key", "key"], ["form", "form"], ["scaleMode", "scaleMode"],
+  ["meter", "meter"], ["tempo", "tempo"], ["bars", "bars"], ["density", "density"], ["instrumentation", "instrumentation"],
+  ["variations", "variations"], ["seed", "seed"], ["engine", "engine"]];
 document.querySelectorAll(".tab").forEach((t) => { t.onclick = () => dispatch({ type: "setMode", mode: t.dataset.mode }); });
 $("file").addEventListener("change", () => {
   const f = $("file").files[0];
@@ -427,10 +529,10 @@ $("play").onclick = () => {
   if (c) play(c, state.result.tempo, { onStatus: playStatus }).catch((e) => playStatus(`Playback failed: ${e.message}`));
 };
 $("stop").onclick = () => { stopPlayback(); playStatus(""); };
-for (const [id, field] of [["inputRole", "inputRole"], ["rootOverride", "rootOverride"], ["targetKey", "targetKey"],
-  ["genre", "genre"], ["emotion", "emotion"], ["key", "key"], ["form", "form"], ["scaleMode", "scaleMode"],
-  ["meter", "meter"], ["tempo", "tempo"], ["bars", "bars"], ["density", "density"], ["instrumentation", "instrumentation"],
-  ["variations", "variations"], ["seed", "seed"], ["engine", "engine"]]) bindField(id, field);
+for (const [id, field] of FIELDS) bindField(id, field);
+$("prompt").addEventListener("input", () => dispatch({ type: "setPrompt", value: $("prompt").value }));
+$("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) interpret(); });
+$("interpret").onclick = interpret;
 window.addEventListener("resize", () => renderResult());
 
 // Closing or refreshing the page disposes of everything it uploaded or generated on the server.
@@ -442,7 +544,8 @@ window.addEventListener("pagehide", () => {
 window.addEventListener("pageshow", (e) => { if (e.persisted) location.reload(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") heartbeat(); });
 
-if (new URLSearchParams(location.search).get("mode") === "metadata") state = reduce(state, { type: "setMode", mode: "metadata" });
+const startMode = new URLSearchParams(location.search).get("mode");
+if (["metadata", "prompt"].includes(startMode)) state = reduce(state, { type: "setMode", mode: startMode });
 render();
 heartbeatTimer = setInterval(heartbeat, DEFAULT_HEARTBEAT_MS);
 connect();
