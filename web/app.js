@@ -338,9 +338,11 @@ function renderAnalysis() {
   if (style && style.genre && style.genre.length) items.push(["Detected genre", pct(style.genre)]);
   facts.innerHTML = items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
   const warn = $("root-warning");
+  const applied = style && style.reliable !== false;
   const usedStyle = style && style.emotion && style.emotion.length
     ? `<div class="wide"><dt>Used for generation</dt><dd>emotion: ${escapeHtml(state.form.emotion)}, genre: ${escapeHtml(state.form.genre)}
-       <span class="muted">(from the ${escapeHtml(style.source)} — change it under From settings)</span></dd></div>` : "";
+       <span class="muted">— ${applied ? "from the detected mood" : "your settings (the detected mood was not applied)"}.
+       ${escapeHtml(style.note || "")} Change it under From settings.</span></dd></div>` : "";
   facts.insertAdjacentHTML("beforeend", usedStyle);
   if (r.root_pitch_class === null) {
     warn.hidden = false; warn.textContent = "Root could not be determined. Choose a manual root and re-analyze (or just generate with the override).";

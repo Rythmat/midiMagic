@@ -1,6 +1,6 @@
 # MIDI Magic evaluation results
 
-Generated 2026-11-16 18:30 on Windows AMD64, Python 3.12.10 by `python evaluation/run_evaluation.py`. Engines: rule, hybrid. Seed 0, 3 candidates per request; metrics are for the top-ranked candidate (0-1, higher is better).
+Generated 2026-11-16 18:38 on Windows AMD64, Python 3.12.10 by `python evaluation/run_evaluation.py`. Engines: rule, hybrid. Seed 0, 3 candidates per request; metrics are for the top-ranked candidate (0-1, higher is better).
 
 ## Test 1: melodic lines in isolation
 
@@ -8,24 +8,42 @@ Six fixed melodies (`evaluation/test_sets.py`). The app detects key and emotion,
 
 | engine | key root acc. | mode acc. | harmonic | rhythmic | key consist. | structure | total | valid | s/request |
 |---|---|---|---|---|---|---|---|---|---|
-| rule | 1.000 | 0.833 | 0.872 | 0.885 | 1.000 | 0.842 | 0.764 | 1.000 | 0.223 |
-| hybrid | 1.000 | 0.833 | 0.778 | 0.939 | 0.998 | 0.775 | 0.783 | 1.000 | 6.797 |
+| rule | 1.000 | 0.833 | 0.871 | 0.940 | 0.985 | 0.847 | 0.826 | 1.000 | 0.287 |
+| hybrid | 1.000 | 0.833 | 0.871 | 0.941 | 0.986 | 0.846 | 0.830 | 1.000 | 5.993 |
 
 
 | melody | engine | detected key | root ok | mode ok | read emotion | harmonic | total |
 |---|---|---|---|---|---|---|---|
-| ode_to_joy | rule | C major | True | True | fear | 0.800 | 0.746 |
-| ode_to_joy | hybrid | C major | True | True | fear | 0.800 | 0.764 |
-| twinkle_twinkle | rule | C major | True | True | sad | 0.796 | 0.759 |
-| twinkle_twinkle | hybrid | C major | True | True | sad | 0.790 | 0.766 |
-| frere_jacques | rule | F major | True | True | sad | 0.861 | 0.819 |
-| frere_jacques | hybrid | F major | True | True | sad | 0.869 | 0.827 |
-| amazing_grace | rule | G major | True | True | fear | 0.943 | 0.732 |
-| amazing_grace | hybrid | G major | True | True | fear | 0.679 | 0.737 |
-| drunken_sailor | rule | D mixolydian | True | False | sad | 0.941 | 0.791 |
-| drunken_sailor | hybrid | D mixolydian | True | False | sad | 0.936 | 0.847 |
-| greensleeves | rule | A minor | True | True | fear | 0.891 | 0.738 |
-| greensleeves | hybrid | A minor | True | True | fear | 0.591 | 0.760 |
+| ode_to_joy | rule | C major | True | True | happy | 0.791 | 0.780 |
+| ode_to_joy | hybrid | C major | True | True | happy | 0.791 | 0.789 |
+| twinkle_twinkle | rule | C major | True | True | warm | 0.785 | 0.825 |
+| twinkle_twinkle | hybrid | C major | True | True | warm | 0.787 | 0.828 |
+| frere_jacques | rule | F major | True | True | warm | 0.884 | 0.822 |
+| frere_jacques | hybrid | F major | True | True | warm | 0.884 | 0.829 |
+| amazing_grace | rule | G major | True | True | romantic | 0.942 | 0.825 |
+| amazing_grace | hybrid | G major | True | True | romantic | 0.942 | 0.825 |
+| drunken_sailor | rule | D mixolydian | True | False | happy | 0.931 | 0.830 |
+| drunken_sailor | hybrid | D mixolydian | True | False | happy | 0.932 | 0.835 |
+| greensleeves | rule | A minor | True | True | sad | 0.891 | 0.871 |
+| greensleeves | hybrid | A minor | True | True | sad | 0.891 | 0.871 |
+
+**Emotion reader on single melodies.** A reading is plausible if its top emotion is one a listener could hear in the tune (`MELODY_MOODS` in `test_sets.py`). The classifier was trained on full songs; the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable.
+
+| reader | plausible top emotion |
+|---|---|
+| classifier only (before the fix) | 0.000 |
+| emotion reader (now) | 1.000 |
+
+Readings reliable enough to drive generation: 83%.
+
+| melody | classifier only | emotion reader | applied |
+|---|---|---|---|
+| ode_to_joy | fear | happy | True |
+| twinkle_twinkle | sad | warm | True |
+| frere_jacques | sad | warm | True |
+| amazing_grace | fear | romantic | True |
+| drunken_sailor | sad | magnificent | False |
+| greensleeves | fear | sad | True |
 
 ## Test 2a: text planner accuracy
 
@@ -99,8 +117,8 @@ Four fixed progressions as the locked input; the app generates a lead melody and
 
 | engine | key root acc. | harmonic | rhythmic | key consist. | total | valid | s/request |
 |---|---|---|---|---|---|---|---|
-| rule | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 0.168 |
-| hybrid | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 2.295 |
+| rule | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 0.173 |
+| hybrid | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 2.410 |
 
 
 | progression | engine | detected key | root ok | harmonic | total |
@@ -120,12 +138,12 @@ Prompt → plan → generate → critic → build on this (+ pad) → stems, for
 
 | step | mean seconds |
 |---|---|
-| plan | 0.007 |
-| generate | 0.730 |
-| critique | 0.019 |
-| build_on | 0.108 |
-| generate_more | 0.630 |
-| stems | 0.149 |
+| plan | 0.005 |
+| generate | 0.807 |
+| critique | 0.009 |
+| build_on | 0.112 |
+| generate_more | 0.592 |
+| stems | 0.148 |
 
 Critic: 4.0 notes per result; by kind {'instrumentation': 11, 'progression': 7, 'emotion': 6}; by severity {'suggestion': 11, 'info': 12, 'warning': 1}; 4% carry a one-click fix.
 

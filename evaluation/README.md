@@ -43,13 +43,21 @@ When the LLM planner replaces the keyword one, the same held-out set compares th
 * Key root detected correctly for 6 of 6 melodies. The mode was wrong once: Drunken Sailor (D dorian) was read as
   D mixolydian.
 * Every output passed validation and the melody was kept unchanged.
-* Rule engine: harmonic compatibility 0.87 at 0.2 s per request. Hybrid engine: higher total score (0.78 vs 0.76)
-  but lower harmonic compatibility (0.78), and 6.8 s per request on a CPU. This matches the repo's earlier engine
-  comparison: the rules are harmonically stronger.
-* The **emotion reader is unreliable on a bare melody**. It read happy tunes such as Ode to Joy and Twinkle Twinkle
-  as "fear" or "sad". The classifier was trained on full multi-track XMIDI songs, and a single melody line is out of
-  distribution. Since the UI uses the detected emotion for generation, users should check it. A fix is to only apply
-  it above a confidence threshold, or to read emotion after accompaniment exists.
+* Rule and hybrid engines score about the same (harmonic compatibility 0.87, total 0.83). The rule engine takes
+  0.3 s per request and the hybrid 6 s on a CPU, so the rule engine is the better default.
+* **Emotion reader on a bare melody: found and fixed.**
+  * The first run showed the classifier reading every melody as "fear" or "sad", happy tunes included (0 of 6
+    plausible). It was trained on full multi-track XMIDI songs, so a single melody line is out of distribution. The
+    same happened for every chord-only input.
+  * Single-part inputs now use a mode/energy reading (major/minor, tempo, loudness, note density). Full
+    arrangements still use the classifier.
+  * A reading only drives generation when it is reliable: the key is clear, or the classifier is at least 40% sure.
+    Otherwise the user's settings stay and the UI says why.
+  * Result: 6 of 6 plausible readings (Ode to Joy → happy, Greensleeves → sad). 5 of 6 were applied; Drunken
+    Sailor's key is ambiguous, so it wasn't.
+  * Caveat: the "plausible moods" (`MELODY_MOODS`) were labelled by the developer. A teammate should re-label them
+    without looking at the readings before this number goes in the report.
+  * Generation also improved once the right mood drove it: the total went from 0.76 to 0.83 with the rule engine.
 
 **Test 2a, planner.**
 * 100% field accuracy on the development prompts. This is optimistic (see above); the held-out run is still to do.

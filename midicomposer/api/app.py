@@ -269,7 +269,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "classifier": {"test_metrics": clf.metrics.get("test")} if clf else None,
             # Which implementation each agent uses ("keywords"/"rules"/"heuristic" baselines, or an LLM later).
             "agents": {"text_planner": "keywords", "critic": "rules",
-                       "emotion_reader": "classifier" if clf else "heuristic"},
+                       "emotion_reader": "classifier + mode/energy" if clf else "mode/energy"},
         }
 
     @app.post("/plan-from-text")

@@ -264,3 +264,13 @@ test("critique answers are keyed to the job and candidate they were asked for", 
   s = reduce(s, { type: "trackLocked", trackId: 1, locked: true });
   assert.equal(s.critiqueKey, null);                     // locks change the critic's actions: ask again
 });
+
+test("an unreliable emotion reading is shown but does not change the settings", () => {
+  const opts = { genres: ["pop", "jazz"], emotions: ["happy", "sad"] };
+  let s = reduce(connected(), { type: "optionsLoaded", options: opts });
+  s = reduce(s, { type: "fileSelected", file: { name: "a.mid", size: 1 } });
+  s = reduce(s, { type: "analyzeSuccess", uploadId: "u1", analysis: { ...ANALYSIS,
+    style: { source: "classifier", reliable: false, emotion: [{ label: "sad", score: 0.3 }], genre: [] } } });
+  assert.equal(s.form.emotion, "happy");                 // the default stays
+  assert.equal(s.analysis.style.emotion[0].label, "sad"); // but the reading is still available to show
+});

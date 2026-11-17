@@ -38,7 +38,7 @@ def test_plan_from_text_reports_what_it_could_not_find():
 def test_read_emotion_heuristic_without_classifier():
     s = tonal_piece(2, "minor")
     out = read_emotion(s, detect_root(s), None, EMOTIONS)
-    assert out["source"] == "heuristic" and len(out["emotion"]) == 3
+    assert out["source"] == "mode/energy" and len(out["emotion"]) == 3
     scores = [e["score"] for e in out["emotion"]]
     assert scores == sorted(scores, reverse=True) and all(0 < x <= 1 for x in scores)
     assert out["emotion"][0]["label"] in {"sad", "fear", "angry", "quiet", "lazy"}   # minor mode -> low valence
@@ -88,7 +88,7 @@ def client():
 
 def test_agent_endpoints(client):
     o = client.get("/options").json()
-    assert o["agents"] == {"text_planner": "keywords", "critic": "rules", "emotion_reader": "heuristic"}
+    assert o["agents"] == {"text_planner": "keywords", "critic": "rules", "emotion_reader": "mode/energy"}
     p = client.post("/plan-from-text", json={"prompt": "happy pop in G, 8 bars"}).json()
     assert p["settings"]["key"] == "G" and p["settings"]["bars"] == 8
     assert client.post("/plan-from-text", json={"prompt": "   "}).status_code == 422
@@ -108,3 +108,19 @@ def test_agent_endpoints(client):
     body = cr.json()
     assert body["source"] == "rules" and body["summary"] and isinstance(body["notes"], list)
     assert client.get(f"/generation/{job}/critique", params={"candidate": 5}).status_code == 404
+
+
+def test_read_emotion_uses_mode_energy_for_a_single_part_and_flags_reliability():
+    from midicomposer.classifiers import load_scorer
+    clf = load_scorer("checkpoints/classifiers.pt")
+    s = tonal_piece(0, "major")
+    melody = type(s)(tracks=[t for t in s.tracks if not t.is_drum][:1], tempos=s.tempos,
+                     time_signatures=s.time_signatures)
+    out = read_emotion(melody, detect_root(melody), clf, EMOTIONS)
+    assert out["source"] == "mode/energy" and out["genre"] == []          # never the classifier on one part
+    assert out["emotion"][0]["label"] in {"happy", "warm", "funny", "exciting", "magnificent", "romantic"}
+    assert isinstance(out["reliable"], bool) and out["note"]
+    if clf is not None and len([t for t in s.tracks if not t.is_drum and t.notes]) >= 2:
+        full = read_emotion(s, detect_root(s), clf, EMOTIONS)
+        assert full["source"] == "classifier"
+        assert full["reliable"] == (full["emotion"][0]["score"] >= 0.4)

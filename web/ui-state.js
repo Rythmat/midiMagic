@@ -210,10 +210,11 @@ export function buildGenerateBody(s) {
   return body;
 }
 
-// The emotion reader's top emotion/genre for an uploaded MIDI become the generation's emotion/genre.
+// The emotion reader's top emotion/genre for an uploaded MIDI become the generation's emotion/genre,
+// but only when the reader says its reading is reliable; otherwise the user's own settings stay.
 function applyDetectedStyle(form, analysis, options) {
   const st = analysis && analysis.style;
-  if (!st) return form;
+  if (!st || st.reliable === false) return form;
   const top = (list) => (list && list.length ? list[0].label : null);
   return applySettings(form, { emotion: top(st.emotion), genre: top(st.genre) }, options);
 }

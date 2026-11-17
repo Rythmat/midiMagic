@@ -43,6 +43,17 @@ MELODIES = [
 ]
 
 
+# Moods a listener could reasonably hear in each melody (a reading is "plausible" if its top emotion is one of these).
+MELODY_MOODS = {
+    "ode_to_joy": {"happy", "magnificent", "exciting", "warm"},
+    "twinkle_twinkle": {"happy", "quiet", "warm", "funny"},
+    "frere_jacques": {"happy", "funny", "warm"},
+    "amazing_grace": {"warm", "romantic", "quiet", "magnificent"},
+    "drunken_sailor": {"exciting", "funny", "happy", "angry", "magnificent"},
+    "greensleeves": {"sad", "romantic", "quiet"},
+}
+
+
 def line_to_score(notes, meter=(4, 4), tempo=100, program=73, name="Melody", velocity=88) -> Score:
     out, t = [], 0.0
     for pitch, dur in notes:
