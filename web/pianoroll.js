@@ -1,4 +1,4 @@
-// Piano-roll rendering and a tiny Web Audio preview player (no dependencies).
+// Piano-roll rendering. Playback lives in audio.js.
 
 const PALETTE = ["#2f6fde", "#e8590c", "#2b8a3e", "#ae3ec9", "#c92a2a", "#1098ad", "#f08c00", "#5c7cfa", "#d6336c",
   "#37b24d", "#845ef7", "#868e96"];
@@ -52,49 +52,4 @@ export function drawRoll(canvas, candidate, opts) {
     }
   });
   g.globalAlpha = 1;
-}
-
-let audio = null;
-let voices = [];
-
-export function stopPlayback() {
-  for (const v of voices) { try { v.stop(); } catch (_) { /* already stopped */ } }
-  voices = [];
-}
-
-export function play(candidate, bpm, mutedIds = new Set()) {
-  stopPlayback();
-  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-  const spb = 60 / (bpm || 120);
-  const t0 = audio.currentTime + 0.1;
-  const master = audio.createGain();
-  master.gain.value = 0.18;
-  master.connect(audio.destination);
-  for (const t of candidate.tracks) {
-    if (mutedIds.has(t.track_id)) continue;
-    for (const [s, d, p, v] of t.notes) {
-      const start = t0 + s * spb;
-      const dur = Math.min(4, Math.max(0.05, d * spb));
-      const gain = audio.createGain();
-      const amp = (v / 127) * (t.is_drum ? 0.5 : 0.35);
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(amp, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0008, start + (t.is_drum ? 0.12 : dur));
-      gain.connect(master);
-      let src;
-      if (t.is_drum) {
-        src = audio.createOscillator();
-        src.type = "square";
-        src.frequency.value = p === 36 || p === 35 ? 60 : (p === 38 || p === 40 ? 180 : 4000);
-      } else {
-        src = audio.createOscillator();
-        src.type = "triangle";
-        src.frequency.value = 440 * Math.pow(2, (p - 69) / 12);
-      }
-      src.connect(gain);
-      src.start(start);
-      src.stop(start + (t.is_drum ? 0.15 : dur + 0.05));
-      voices.push(src);
-    }
-  }
 }

@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MIDI Composer</title>
+  <title>MIDI Magic</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Sampled General MIDI instruments for playback (audio.js falls back to a simple synth without it). -->
+  <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js" defer></script>
 </head>
 <body>
 <header class="topbar">
-  <h1>MIDI Composer</h1>
+  <h1>MIDI Magic</h1>
+  <span class="muted small tagline">editable MIDI stems, shaped by emotion</span>
   <span id="server-status" class="pill">connecting…</span>
   <span id="engine-status" class="muted small"></span>
 </header>
@@ -33,6 +36,7 @@
           <select id="rootOverride"><option value="">auto-detect</option></select>
         </label>
       </div>
+      <div id="building-from" class="notice" hidden></div>
       <button id="analyze" class="secondary" disabled>Analyze MIDI</button>
       <p id="analyze-hint" class="hint"></p>
       <label class="field">Target key (transpose output)
@@ -119,9 +123,12 @@
           <button id="play" class="secondary" disabled>Play</button>
           <button id="stop" class="secondary" disabled>Stop</button>
           <button id="download" class="primary" disabled>Download MIDI</button>
+          <button id="download-stems" class="secondary" disabled
+                  title="A .zip with the full arrangement and one MIDI file per track">Download stems (.zip)</button>
           <a id="manifest-link" class="small" target="_blank" rel="noopener">manifest</a>
         </div>
       </div>
+      <p id="play-status" class="hint" aria-live="polite"></p>
       <p class="hint">Closing or refreshing this page discards these results. Download anything you want to keep.</p>
       <div id="scores" class="scores"></div>
       <canvas id="roll" height="300" aria-label="Piano roll of the selected candidate"></canvas>
@@ -139,6 +146,11 @@
       <div class="buttons">
         <button id="regen-section" class="secondary" disabled>Regenerate selected section</button>
         <span id="regen-section-hint" class="hint inline"></span>
+      </div>
+      <h3>Keep building</h3>
+      <div class="buttons">
+        <button id="build-on" class="secondary" disabled>Build on this →</button>
+        <span class="hint inline">Uses this result as the locked input, so the next stems you generate fit what is already here.</span>
       </div>
       <h3>Warnings &amp; validation</h3>
       <ul id="warnings" class="warn-list"></ul>

@@ -1,10 +1,11 @@
 // DOM layer: renders from the pure state in ui-state.js and talks to the API.
 import {
-  analyzeBlockers, buildGenerateBody, canAnalyze, canDownload, canGenerate, canRegenerateSection,
-  canRegenerateTrack, currentCandidate, generateBlockers, initialState, reduce, regenerateSectionBlockers,
-  regenerateTrackBlockers,
+  analyzeBlockers, buildGenerateBody, buildOnBlockers, canAnalyze, canBuildOn, canDownload, canGenerate,
+  canRegenerateSection, canRegenerateTrack, currentCandidate, generateBlockers, initialState, reduce,
+  regenerateSectionBlockers, regenerateTrackBlockers,
 } from "./ui-state.js";
-import { drawRoll, play, stopPlayback, trackColor } from "./pianoroll.js";
+import { drawRoll, trackColor } from "./pianoroll.js";
+import { play, stopPlayback } from "./audio.js";
 
 // API base: same origin by default; `?api=http://host:port` when the UI is served separately.
 const API = (new URLSearchParams(location.search).get("api") || "").replace(/\/$/, "");
@@ -220,12 +221,45 @@ async function toggleLock(trackId, locked) {
 }
 
 // Fetched as a blob so that saving a file never navigates, which could look like leaving the page.
-async function download() {
+function download() {
   if (!canDownload(state)) return;
   const index = state.selectedCandidate;
   const name = `${state.jobId}_candidate_${index + 1}_seed${currentCandidate(state).seed}.mid`;
+  return saveFile(`/generation/${state.jobId}/download?candidate=${index}`, name);
+}
+
+function downloadStems() {
+  if (!canDownload(state)) return;
+  const index = state.selectedCandidate;
+  const name = `${state.jobId}_candidate_${index + 1}_seed${currentCandidate(state).seed}_stems.zip`;
+  return saveFile(`/generation/${state.jobId}/stems?candidate=${index}`, name);
+}
+
+// "Build on this": the server turns the selected result into a new upload; its tracks become locked anchors.
+async function buildOn() {
+  if (!canBuildOn(state)) return;
+  stopPlayback();
+  $("play-status").textContent = "";
+  const jobId = state.jobId;
+  const candidate = state.selectedCandidate;
+  dispatch({ type: "buildOnStart" });
   try {
-    const res = await request(`/generation/${state.jobId}/download?candidate=${index}`);
+    const r = await api(`/generation/${jobId}/as-input`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate }) });
+    $("file").value = "";
+    dispatch({ type: "buildOnReady", jobId, candidate, uploadId: r.upload_id, analysis: r.analysis,
+      file: { name: r.filename, size: r.size } });
+    $("inputRole").value = state.form.inputRole;
+    $("targetKey").value = ""; $("rootOverride").value = "";
+    document.querySelector(".controls").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    if (!(e instanceof SessionExpired)) dispatch({ type: "buildOnError", error: e.message });
+  }
+}
+
+async function saveFile(path, name) {
+  try {
+    const res = await request(path);
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement("a");
     a.href = url;
@@ -256,6 +290,7 @@ function renderAnalysis() {
   const r = a.root;
   const conf = r.root_confidence != null ? `${Math.round(r.root_confidence * 100)}%` : "—";
   const items = [
+    ...(state.file ? [["Input", escapeHtml(state.file.name)]] : []),
     ["Detected root", r.root_name ?? "undetermined"], ["Root confidence", conf], ["Key / mode", r.key_name ?? "—"],
     ["Method", r.root_detection_method], ["Tempo", `${a.tempo_bpm} BPM`], ["Meter", a.meter],
     ["Bars", a.n_bars], ["Duration", `${a.duration_seconds}s`],
@@ -348,7 +383,15 @@ function render() {
   setButton($("generate"), canGenerate(state), gb);
   $("generate").textContent = state.generating ? "Generating…" : "Generate";
   $("generate-hint").innerHTML = gb.map((m) => `<li>${escapeHtml(m)}</li>`).join("");
+  const bf = state.buildingFrom;
+  $("building-from").hidden = !(midi && bf);
+  $("building-from").textContent = bf
+    ? `Building on candidate #${bf.candidate + 1} of job ${bf.jobId}: its tracks are locked. Pick the new roles to add, then Generate.`
+    : "";
   setButton($("download"), canDownload(state), ["Finish a generation first."]);
+  setButton($("download-stems"), canDownload(state), ["Finish a generation first."]);
+  setButton($("build-on"), canBuildOn(state), buildOnBlockers(state));
+  $("build-on").textContent = state.preparingInput ? "Preparing…" : "Build on this →";
   setButton($("play"), canDownload(state), ["Finish a generation first."]);
   setButton($("stop"), canDownload(state), ["Nothing is playing."]);
   setButton($("regen-track"), canRegenerateTrack(state), regenerateTrackBlockers(state));
@@ -373,11 +416,17 @@ $("file").addEventListener("change", () => {
 $("analyze").onclick = analyze;
 $("generate").onclick = generate;
 $("download").onclick = download;
+$("download-stems").onclick = downloadStems;
+$("build-on").onclick = buildOn;
 $("regen-track").onclick = regenTrack;
 $("regen-section").onclick = regenSection;
 $("candidate").onchange = () => dispatch({ type: "selectCandidate", index: Number($("candidate").value) });
-$("play").onclick = () => { const c = currentCandidate(state); if (c) play(c, state.result.tempo); };
-$("stop").onclick = stopPlayback;
+const playStatus = (text) => { $("play-status").textContent = text; };
+$("play").onclick = () => {
+  const c = currentCandidate(state);
+  if (c) play(c, state.result.tempo, { onStatus: playStatus }).catch((e) => playStatus(`Playback failed: ${e.message}`));
+};
+$("stop").onclick = () => { stopPlayback(); playStatus(""); };
 for (const [id, field] of [["inputRole", "inputRole"], ["rootOverride", "rootOverride"], ["targetKey", "targetKey"],
   ["genre", "genre"], ["emotion", "emotion"], ["key", "key"], ["form", "form"], ["scaleMode", "scaleMode"],
   ["meter", "meter"], ["tempo", "tempo"], ["bars", "bars"], ["density", "density"], ["instrumentation", "instrumentation"],
