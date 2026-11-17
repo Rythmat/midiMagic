@@ -1,0 +1,951 @@
+{
+  "meta": {
+    "date": "2026-11-16 18:30",
+    "engines": [
+      "rule",
+      "hybrid"
+    ],
+    "machine": "Windows AMD64, Python 3.12.10",
+    "text_planner": "keywords",
+    "critic": "rules"
+  },
+  "test1": {
+    "rows": [
+      {
+        "melody": "ode_to_joy",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 0.91,
+        "detected": "C major",
+        "read_emotion": "fear",
+        "read_genre": "traditional",
+        "seconds": 0.2,
+        "total": 0.7456,
+        "quality": 0.924,
+        "emotion_fit": 0.7,
+        "genre_fit": 0.546,
+        "harmonic": 0.8,
+        "rhythmic": 0.9829,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "fear",
+          "warm"
+        ]
+      },
+      {
+        "melody": "ode_to_joy",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 0.91,
+        "detected": "C major",
+        "read_emotion": "fear",
+        "read_genre": "traditional",
+        "seconds": 7.41,
+        "total": 0.7641,
+        "quality": 0.924,
+        "emotion_fit": 0.7,
+        "genre_fit": 0.546,
+        "harmonic": 0.8,
+        "rhythmic": 0.9829,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "fear",
+          "warm"
+        ]
+      },
+      {
+        "melody": "twinkle_twinkle",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "C major",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 0.3,
+        "total": 0.7595,
+        "quality": 0.8733,
+        "emotion_fit": 0.7467,
+        "genre_fit": 0.5429,
+        "harmonic": 0.7964,
+        "rhythmic": 0.8887,
+        "key_consistency": 1.0,
+        "structure": 0.8,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "warm"
+        ]
+      },
+      {
+        "melody": "twinkle_twinkle",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "C major",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 8.46,
+        "total": 0.7663,
+        "quality": 0.8849,
+        "emotion_fit": 0.7518,
+        "genre_fit": 0.5365,
+        "harmonic": 0.79,
+        "rhythmic": 0.986,
+        "key_consistency": 1.0,
+        "structure": 0.8,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "fear",
+          "warm"
+        ]
+      },
+      {
+        "melody": "frere_jacques",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "F major",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 0.13,
+        "total": 0.8194,
+        "quality": 0.8851,
+        "emotion_fit": 0.7597,
+        "genre_fit": 0.8573,
+        "harmonic": 0.8607,
+        "rhythmic": 0.8724,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "warm"
+        ]
+      },
+      {
+        "melody": "frere_jacques",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "F major",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 4.22,
+        "total": 0.8272,
+        "quality": 0.8997,
+        "emotion_fit": 0.7715,
+        "genre_fit": 0.8397,
+        "harmonic": 0.8688,
+        "rhythmic": 0.9708,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "warm",
+          "quiet"
+        ]
+      },
+      {
+        "melody": "amazing_grace",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "G major",
+        "read_emotion": "fear",
+        "read_genre": "classical",
+        "seconds": 0.27,
+        "total": 0.7322,
+        "quality": 0.9141,
+        "emotion_fit": 0.5018,
+        "genre_fit": 0.471,
+        "harmonic": 0.9429,
+        "rhythmic": 0.8547,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "warm",
+          "romantic"
+        ]
+      },
+      {
+        "melody": "amazing_grace",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "G major",
+        "read_emotion": "fear",
+        "read_genre": "classical",
+        "seconds": 7.9,
+        "total": 0.7366,
+        "quality": 0.8607,
+        "emotion_fit": 0.4642,
+        "genre_fit": 0.4528,
+        "harmonic": 0.6795,
+        "rhythmic": 0.8667,
+        "key_consistency": 1.0,
+        "structure": 0.65,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "fear",
+          "warm"
+        ]
+      },
+      {
+        "melody": "drunken_sailor",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": false,
+        "root_confidence": 0.5,
+        "detected": "D mixolydian",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 0.17,
+        "total": 0.7911,
+        "quality": 0.8979,
+        "emotion_fit": 0.7585,
+        "genre_fit": 0.5056,
+        "harmonic": 0.9411,
+        "rhythmic": 0.8504,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "warm"
+        ]
+      },
+      {
+        "melody": "drunken_sailor",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": false,
+        "root_confidence": 0.5,
+        "detected": "D mixolydian",
+        "read_emotion": "sad",
+        "read_genre": "classical",
+        "seconds": 4.07,
+        "total": 0.8466,
+        "quality": 0.9064,
+        "emotion_fit": 0.7749,
+        "genre_fit": 0.825,
+        "harmonic": 0.9365,
+        "rhythmic": 0.974,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "warm",
+          "quiet"
+        ]
+      },
+      {
+        "melody": "greensleeves",
+        "engine": "rule",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "A minor",
+        "read_emotion": "fear",
+        "read_genre": "classical",
+        "seconds": 0.27,
+        "total": 0.7379,
+        "quality": 0.9048,
+        "emotion_fit": 0.6243,
+        "genre_fit": 0.4244,
+        "harmonic": 0.8911,
+        "rhythmic": 0.8598,
+        "key_consistency": 1.0,
+        "structure": 0.85,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "exciting",
+          "warm"
+        ]
+      },
+      {
+        "melody": "greensleeves",
+        "engine": "hybrid",
+        "root_ok": true,
+        "mode_ok": true,
+        "root_confidence": 1.0,
+        "detected": "A minor",
+        "read_emotion": "fear",
+        "read_genre": "classical",
+        "seconds": 8.72,
+        "total": 0.7596,
+        "quality": 0.8333,
+        "emotion_fit": 0.6856,
+        "genre_fit": 0.4975,
+        "harmonic": 0.5905,
+        "rhythmic": 0.8543,
+        "key_consistency": 0.9883,
+        "structure": 0.65,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "fear",
+          "warm"
+        ]
+      }
+    ],
+    "summary": {
+      "rule": {
+        "root_accuracy": 1.0,
+        "mode_accuracy": 0.833,
+        "total": 0.764,
+        "harmonic": 0.872,
+        "rhythmic": 0.885,
+        "key_consistency": 1.0,
+        "structure": 0.842,
+        "seconds": 0.223,
+        "valid_rate": 1.0
+      },
+      "hybrid": {
+        "root_accuracy": 1.0,
+        "mode_accuracy": 0.833,
+        "total": 0.783,
+        "harmonic": 0.778,
+        "rhythmic": 0.939,
+        "key_consistency": 0.998,
+        "structure": 0.775,
+        "seconds": 6.797,
+        "valid_rate": 1.0
+      }
+    }
+  },
+  "test2a": {
+    "rows": [
+      {
+        "prompt": "A sad, slow piano and cello piece in D minor, 16 bars",
+        "expected": {
+          "emotion": "sad",
+          "key": "D",
+          "scale_mode": "minor",
+          "bars": 16
+        },
+        "got": {
+          "emotion": "sad",
+          "key": "D",
+          "scale_mode": "minor",
+          "bars": 16
+        },
+        "all_correct": true,
+        "n_correct": 4,
+        "n_expected": 4
+      },
+      {
+        "prompt": "Upbeat summer pop song with guitar at 128 bpm",
+        "expected": {
+          "genre": "pop",
+          "emotion": "exciting",
+          "tempo": 128
+        },
+        "got": {
+          "genre": "pop",
+          "emotion": "exciting",
+          "tempo": 128
+        },
+        "all_correct": true,
+        "n_correct": 3,
+        "n_expected": 3
+      },
+      {
+        "prompt": "Epic heroic orchestral theme for a movie trailer",
+        "expected": {
+          "genre": "classical",
+          "emotion": "magnificent"
+        },
+        "got": {
+          "genre": "classical",
+          "emotion": "magnificent"
+        },
+        "all_correct": true,
+        "n_correct": 2,
+        "n_expected": 2
+      },
+      {
+        "prompt": "A lazy jazz trio tune in Bb for a Sunday morning",
+        "expected": {
+          "genre": "jazz",
+          "emotion": "lazy",
+          "key": "A#"
+        },
+        "got": {
+          "genre": "jazz",
+          "emotion": "lazy",
+          "key": "A#"
+        },
+        "all_correct": true,
+        "n_correct": 3,
+        "n_expected": 3
+      },
+      {
+        "prompt": "Angry heavy rock riff in E minor, fast",
+        "expected": {
+          "genre": "rock",
+          "emotion": "angry",
+          "key": "E",
+          "scale_mode": "minor"
+        },
+        "got": {
+          "genre": "rock",
+          "emotion": "angry",
+          "key": "E",
+          "scale_mode": "minor"
+        },
+        "all_correct": true,
+        "n_correct": 4,
+        "n_expected": 4
+      },
+      {
+        "prompt": "Warm cozy country ballad in G major",
+        "expected": {
+          "genre": "country",
+          "emotion": "warm",
+          "key": "G",
+          "scale_mode": "major"
+        },
+        "got": {
+          "genre": "country",
+          "emotion": "warm",
+          "key": "G",
+          "scale_mode": "major"
+        },
+        "all_correct": true,
+        "n_correct": 4,
+        "n_expected": 4
+      },
+      {
+        "prompt": "Creepy, tense music for a horror scene",
+        "expected": {
+          "emotion": "fear"
+        },
+        "got": {
+          "emotion": "fear"
+        },
+        "all_correct": true,
+        "n_correct": 1,
+        "n_expected": 1
+      },
+      {
+        "prompt": "Romantic love song with strings, 90 bpm",
+        "expected": {
+          "emotion": "romantic",
+          "tempo": 90
+        },
+        "got": {
+          "emotion": "romantic",
+          "tempo": 90
+        },
+        "all_correct": true,
+        "n_correct": 2,
+        "n_expected": 2
+      },
+      {
+        "prompt": "Calm and peaceful meditation music, minimal",
+        "expected": {
+          "emotion": "quiet",
+          "density": 0.2
+        },
+        "got": {
+          "emotion": "quiet",
+          "density": 0.2
+        },
+        "all_correct": true,
+        "n_correct": 2,
+        "n_expected": 2
+      },
+      {
+        "prompt": "A playful, silly cartoon tune in C",
+        "expected": {
+          "emotion": "funny",
+          "key": "C"
+        },
+        "got": {
+          "emotion": "funny",
+          "key": "C"
+        },
+        "all_correct": true,
+        "n_correct": 2,
+        "n_expected": 2
+      },
+      {
+        "prompt": "Happy traditional folk dance in A, 32 bars",
+        "expected": {
+          "genre": "traditional",
+          "emotion": "happy",
+          "key": "A",
+          "bars": 32
+        },
+        "got": {
+          "genre": "traditional",
+          "emotion": "happy",
+          "key": "A",
+          "bars": 32
+        },
+        "all_correct": true,
+        "n_correct": 4,
+        "n_expected": 4
+      },
+      {
+        "prompt": "Exciting energetic rock anthem with drums",
+        "expected": {
+          "genre": "rock",
+          "emotion": "exciting"
+        },
+        "got": {
+          "genre": "rock",
+          "emotion": "exciting"
+        },
+        "all_correct": true,
+        "n_correct": 2,
+        "n_expected": 2
+      }
+    ],
+    "field_accuracy": 1.0,
+    "prompt_exact_match": 1.0,
+    "per_field": {
+      "genre": {
+        "correct": 7,
+        "total": 7,
+        "accuracy": 1.0
+      },
+      "emotion": {
+        "correct": 12,
+        "total": 12,
+        "accuracy": 1.0
+      },
+      "key": {
+        "correct": 6,
+        "total": 6,
+        "accuracy": 1.0
+      },
+      "scale_mode": {
+        "correct": 3,
+        "total": 3,
+        "accuracy": 1.0
+      },
+      "tempo": {
+        "correct": 2,
+        "total": 2,
+        "accuracy": 1.0
+      },
+      "bars": {
+        "correct": 2,
+        "total": 2,
+        "accuracy": 1.0
+      },
+      "density": {
+        "correct": 1,
+        "total": 1,
+        "accuracy": 1.0
+      }
+    }
+  },
+  "test2a_heldout": null,
+  "test2b": {
+    "per_emotion": {
+      "angry": {
+        "top3_hit_rate": 0.167,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 133.0,
+        "velocity": 98.4,
+        "notes_per_bar": 38.2,
+        "minor": 1.0
+      },
+      "exciting": {
+        "top3_hit_rate": 0.5,
+        "neutral_top3_hit_rate": 0.5,
+        "tempo": 133.0,
+        "velocity": 98.5,
+        "notes_per_bar": 37.85,
+        "minor": 0.0
+      },
+      "fear": {
+        "top3_hit_rate": 0.0,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 124.0,
+        "velocity": 88.76,
+        "notes_per_bar": 38.2,
+        "minor": 1.0
+      },
+      "funny": {
+        "top3_hit_rate": 0.0,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 127.5,
+        "velocity": 93.07,
+        "notes_per_bar": 37.85,
+        "minor": 0.0
+      },
+      "happy": {
+        "top3_hit_rate": 0.667,
+        "neutral_top3_hit_rate": 0.5,
+        "tempo": 126.0,
+        "velocity": 90.96,
+        "notes_per_bar": 37.85,
+        "minor": 0.0
+      },
+      "lazy": {
+        "top3_hit_rate": 0.0,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 104.5,
+        "velocity": 64.45,
+        "notes_per_bar": 24.39,
+        "minor": 0.0
+      },
+      "magnificent": {
+        "top3_hit_rate": 0.0,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 129.5,
+        "velocity": 95.17,
+        "notes_per_bar": 37.85,
+        "minor": 0.0
+      },
+      "quiet": {
+        "top3_hit_rate": 1.0,
+        "neutral_top3_hit_rate": 0.0,
+        "tempo": 103.0,
+        "velocity": 62.35,
+        "notes_per_bar": 24.39,
+        "minor": 0.0
+      },
+      "romantic": {
+        "top3_hit_rate": 0.667,
+        "neutral_top3_hit_rate": 0.5,
+        "tempo": 111.5,
+        "velocity": 73.6,
+        "notes_per_bar": 35.57,
+        "minor": 0.0
+      },
+      "sad": {
+        "top3_hit_rate": 1.0,
+        "neutral_top3_hit_rate": 0.5,
+        "tempo": 108.0,
+        "velocity": 68.58,
+        "notes_per_bar": 24.56,
+        "minor": 1.0
+      },
+      "warm": {
+        "top3_hit_rate": 1.0,
+        "neutral_top3_hit_rate": 1.0,
+        "tempo": 113.5,
+        "velocity": 75.73,
+        "notes_per_bar": 35.57,
+        "minor": 0.0
+      }
+    },
+    "n_generations": 72,
+    "top3_hit_rate": 0.455,
+    "neutral_top3_hit_rate": 0.273,
+    "chance_top3": 0.273,
+    "correlations": {
+      "arousal~tempo": 0.792,
+      "arousal~velocity": 0.999,
+      "arousal~notes_per_bar": 0.847,
+      "valence~minor": -0.939
+    }
+  },
+  "test2c": {
+    "rows": [
+      {
+        "progression": "pop_I_V_vi_IV_in_C",
+        "engine": "rule",
+        "root_ok": true,
+        "detected": "C major",
+        "seconds": 0.19,
+        "total": 0.7723,
+        "quality": 0.9172,
+        "emotion_fit": 0.4581,
+        "genre_fit": 0.5469,
+        "harmonic": 0.8709,
+        "rhythmic": 0.7795,
+        "key_consistency": 0.9429,
+        "structure": 0.842,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "warm"
+        ]
+      },
+      {
+        "progression": "pop_I_V_vi_IV_in_C",
+        "engine": "hybrid",
+        "root_ok": true,
+        "detected": "C major",
+        "seconds": 3.12,
+        "total": 0.7723,
+        "quality": 0.9172,
+        "emotion_fit": 0.4581,
+        "genre_fit": 0.5469,
+        "harmonic": 0.8709,
+        "rhythmic": 0.7795,
+        "key_consistency": 0.9429,
+        "structure": 0.842,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "warm"
+        ]
+      },
+      {
+        "progression": "jazz_ii_V_I_in_F",
+        "engine": "rule",
+        "root_ok": true,
+        "detected": "F major",
+        "seconds": 0.18,
+        "total": 0.7407,
+        "quality": 0.9209,
+        "emotion_fit": 0.3271,
+        "genre_fit": 0.452,
+        "harmonic": 0.8426,
+        "rhythmic": 0.8276,
+        "key_consistency": 1.0,
+        "structure": 0.9231,
+        "valid": true,
+        "heard_emotions": [
+          "quiet",
+          "sad",
+          "warm"
+        ]
+      },
+      {
+        "progression": "jazz_ii_V_I_in_F",
+        "engine": "hybrid",
+        "root_ok": true,
+        "detected": "F major",
+        "seconds": 1.91,
+        "total": 0.7407,
+        "quality": 0.9209,
+        "emotion_fit": 0.3271,
+        "genre_fit": 0.452,
+        "harmonic": 0.8426,
+        "rhythmic": 0.8276,
+        "key_consistency": 1.0,
+        "structure": 0.9231,
+        "valid": true,
+        "heard_emotions": [
+          "quiet",
+          "sad",
+          "warm"
+        ]
+      },
+      {
+        "progression": "minor_i_VI_III_VII_in_A",
+        "engine": "rule",
+        "root_ok": false,
+        "detected": "C major",
+        "seconds": 0.15,
+        "total": 0.7631,
+        "quality": 0.888,
+        "emotion_fit": 0.2987,
+        "genre_fit": 0.7225,
+        "harmonic": 0.8475,
+        "rhythmic": 0.894,
+        "key_consistency": 1.0,
+        "structure": 0.625,
+        "valid": true,
+        "heard_emotions": [
+          "fear",
+          "magnificent",
+          "quiet"
+        ]
+      },
+      {
+        "progression": "minor_i_VI_III_VII_in_A",
+        "engine": "hybrid",
+        "root_ok": false,
+        "detected": "C major",
+        "seconds": 1.4,
+        "total": 0.7631,
+        "quality": 0.888,
+        "emotion_fit": 0.2987,
+        "genre_fit": 0.7225,
+        "harmonic": 0.8475,
+        "rhythmic": 0.894,
+        "key_consistency": 1.0,
+        "structure": 0.625,
+        "valid": true,
+        "heard_emotions": [
+          "fear",
+          "magnificent",
+          "quiet"
+        ]
+      },
+      {
+        "progression": "blues_12_bar_in_G",
+        "engine": "rule",
+        "root_ok": true,
+        "detected": "G mixolydian",
+        "seconds": 0.15,
+        "total": 0.753,
+        "quality": 0.8746,
+        "emotion_fit": 0.4802,
+        "genre_fit": 0.5229,
+        "harmonic": 0.7525,
+        "rhythmic": 0.7624,
+        "key_consistency": 0.9062,
+        "structure": 0.65,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "fear"
+        ]
+      },
+      {
+        "progression": "blues_12_bar_in_G",
+        "engine": "hybrid",
+        "root_ok": true,
+        "detected": "G mixolydian",
+        "seconds": 2.75,
+        "total": 0.753,
+        "quality": 0.8746,
+        "emotion_fit": 0.4802,
+        "genre_fit": 0.5229,
+        "harmonic": 0.7525,
+        "rhythmic": 0.7624,
+        "key_consistency": 0.9062,
+        "structure": 0.65,
+        "valid": true,
+        "heard_emotions": [
+          "sad",
+          "quiet",
+          "fear"
+        ]
+      }
+    ],
+    "summary": {
+      "rule": {
+        "total": 0.757,
+        "harmonic": 0.828,
+        "rhythmic": 0.816,
+        "key_consistency": 0.962,
+        "seconds": 0.168,
+        "root_accuracy": 0.75,
+        "valid_rate": 1.0
+      },
+      "hybrid": {
+        "total": 0.757,
+        "harmonic": 0.828,
+        "rhythmic": 0.816,
+        "key_consistency": 0.962,
+        "seconds": 2.295,
+        "root_accuracy": 0.75,
+        "valid_rate": 1.0
+      }
+    }
+  },
+  "test3": {
+    "runs": [
+      {
+        "prompt": "A sad, slow piano and cello piece in D minor, 16 bars",
+        "plan": 0.01,
+        "generate": 0.273,
+        "critique": 0.022,
+        "build_on": 0.065,
+        "generate_more": 0.243,
+        "stems": 0.059,
+        "ok": true
+      },
+      {
+        "prompt": "Upbeat summer pop song with guitar at 128 bpm",
+        "plan": 0.0,
+        "generate": 1.111,
+        "critique": 0.014,
+        "build_on": 0.13,
+        "generate_more": 0.871,
+        "stems": 0.176,
+        "ok": true
+      },
+      {
+        "prompt": "Epic heroic orchestral theme for a movie trailer",
+        "plan": 0.006,
+        "generate": 0.307,
+        "critique": 0.008,
+        "build_on": 0.083,
+        "generate_more": 0.367,
+        "stems": 0.066,
+        "ok": true
+      },
+      {
+        "prompt": "A lazy jazz trio tune in Bb for a Sunday morning",
+        "plan": 0.016,
+        "generate": 0.474,
+        "critique": 0.015,
+        "build_on": 0.087,
+        "generate_more": 0.513,
+        "stems": 0.081,
+        "ok": true
+      },
+      {
+        "prompt": "Angry heavy rock riff in E minor, fast",
+        "plan": 0.0,
+        "generate": 1.475,
+        "critique": 0.03,
+        "build_on": 0.186,
+        "generate_more": 1.178,
+        "stems": 0.377,
+        "ok": true
+      },
+      {
+        "prompt": "Warm cozy country ballad in G major",
+        "plan": 0.008,
+        "generate": 0.743,
+        "critique": 0.022,
+        "build_on": 0.099,
+        "generate_more": 0.605,
+        "stems": 0.137,
+        "ok": true
+      }
+    ],
+    "success_rate": 1.0,
+    "mean_latency_seconds": {
+      "plan": 0.007,
+      "generate": 0.73,
+      "critique": 0.019,
+      "build_on": 0.108,
+      "generate_more": 0.63,
+      "stems": 0.149
+    },
+    "critic": {
+      "notes_per_result": 4.0,
+      "by_kind": {
+        "instrumentation": 11,
+        "progression": 7,
+        "emotion": 6
+      },
+      "by_severity": {
+        "suggestion": 11,
+        "info": 12,
+        "warning": 1
+      },
+      "with_action": 0.042
+    }
+  }
+}

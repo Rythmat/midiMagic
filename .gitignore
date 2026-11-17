@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 XMIDI_Dataset/
 data/
+# small fixed test inputs for the evaluation and user study
+!evaluation/data/
 checkpoints/*.pt
 # the two models the deployed app loads; other checkpoints stay local
 !checkpoints/classifiers.pt
