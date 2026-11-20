@@ -363,6 +363,7 @@ function renderAnalysis() {
 function renderResult() {
   const jb = $("job-box");
   jb.hidden = !state.jobStatus && !state.jobError;
+  jb.classList.toggle("running", Boolean(state.generating));   // shows the animated progress bar
   $("job-status").textContent = state.generating ? (state.jobStatus || "starting") : (state.jobStatus || "");
   $("job-error").hidden = !state.jobError;
   $("job-error").textContent = state.jobError || "";
