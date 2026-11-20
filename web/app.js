@@ -57,6 +57,7 @@ function setServerStatus(ok) {
 
 function expireSession() {
   stopPlayback();
+  document.body.classList.remove("playing");
   $("file").value = "";
   dispatch({ type: "sessionExpired", notice: "This page lost contact with the server (a long sleep or a server "
     + "restart), so its uploads and results were discarded. Choose your file or generate again to continue." });
@@ -277,7 +278,7 @@ function downloadStems() {
 async function buildOn() {
   if (!canBuildOn(state)) return;
   stopPlayback();
-  $("play-status").textContent = "";
+  playStatus("");
   const jobId = state.jobId;
   const candidate = state.selectedCandidate;
   dispatch({ type: "buildOnStart" });
@@ -524,7 +525,10 @@ $("build-on").onclick = buildOn;
 $("regen-track").onclick = regenTrack;
 $("regen-section").onclick = regenSection;
 $("candidate").onchange = () => dispatch({ type: "selectCandidate", index: Number($("candidate").value) });
-const playStatus = (text) => { $("play-status").textContent = text; };
+const playStatus = (text) => {
+  $("play-status").textContent = text;
+  document.body.classList.toggle("playing", text.startsWith("Playing"));   // animates the header equalizer
+};
 $("play").onclick = () => {
   const c = currentCandidate(state);
   if (c) play(c, state.result.tempo, { onStatus: playStatus }).catch((e) => playStatus(`Playback failed: ${e.message}`));
