@@ -27,10 +27,12 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from evaluation.test_sets import MELODIES, PROGRESSIONS, PROMPTS, line_to_score, progression_to_score  # noqa: E402
-from midicomposer.agents import critique, plan_from_text, read_emotion  # noqa: E402
+from evaluation.test_sets import (MELODIES, MELODY_MOODS, PROGRESSIONS, PROMPTS, line_to_score,  # noqa: E402
+                                  progression_to_score)
+from midicomposer.agents import plan_from_text, read_emotion  # noqa: E402
 from midicomposer.api.app import XMIDI_DEFAULT_EMOTIONS, XMIDI_DEFAULT_GENRES  # noqa: E402
 from midicomposer.classifiers import load_scorer  # noqa: E402
+from midicomposer.features import score_features  # noqa: E402
 from midicomposer.generation.pipeline import DEFAULT_CLASSIFIER, GenerationRequest, run_generation  # noqa: E402
 from midicomposer.midi_io import score_to_bytes  # noqa: E402
 from midicomposer.root import detect_root  # noqa: E402
@@ -60,13 +62,20 @@ def mean(rows, key):
 
 def test1(engines) -> dict:
     clf = load_scorer(DEFAULT_CLASSIFIER)
-    rows = []
+    rows, reader = [], []
     for name, notes, meter, tempo, pc, fam in MELODIES:
         score = line_to_score(notes, meter, tempo)
         root = detect_root(score)
         style = read_emotion(score, root, clf, EMOTIONS)
-        emo = style["emotion"][0]["label"] if style["emotion"] else "happy"
-        genre = style["genre"][0]["label"] if style["genre"] else "pop"
+        # Before the fix the classifier read every input; kept here as the comparison.
+        old = max(clf.predict(score_features(score, root))["emotion"].items(), key=lambda kv: kv[1])[0]
+        new = style["emotion"][0]["label"] if style["emotion"] else None
+        reader.append({"melody": name, "classifier_only": old, "emotion_reader": new, "reader_source": style["source"],
+                       "applied": style["reliable"], "classifier_plausible": old in MELODY_MOODS[name],
+                       "reader_plausible": new in MELODY_MOODS[name]})
+        # As in the UI: a reading drives generation only when it is reliable; otherwise the defaults stay.
+        emo = new if style["reliable"] and new else "happy"
+        genre = style["genre"][0]["label"] if style["reliable"] and style["genre"] else "pop"
         for eng in engines:
             t0 = time.time()
             st = run_generation(GenerationRequest(mode="midi", input_role="lead", engine=eng, n_variations=3, seed=0,
@@ -84,7 +93,11 @@ def test1(engines) -> dict:
                         for k in ("total", "harmonic", "rhythmic", "key_consistency", "structure", "seconds")},
                      "valid_rate": mean([dict(r, x=float(r["valid"])) for r in rows if r["engine"] == eng], "x")}
                for eng in engines}
-    return {"rows": rows, "summary": summary}
+    n = len(reader)
+    reader_summary = {"classifier_only_plausible": round(sum(r["classifier_plausible"] for r in reader) / n, 3),
+                      "emotion_reader_plausible": round(sum(r["reader_plausible"] for r in reader) / n, 3),
+                      "applied": round(sum(r["applied"] for r in reader) / n, 3)}
+    return {"rows": rows, "summary": summary, "emotion_reader": reader, "emotion_reader_summary": reader_summary}
 
 
 # ----------------------------------------------------------------------------- test 2
@@ -262,6 +275,15 @@ def markdown(res: dict) -> str:
           "\n", table(["melody", "engine", "detected key", "root ok", "mode ok", "read emotion", "harmonic", "total"],
                       [[r["melody"], r["engine"], r["detected"], r["root_ok"], r["mode_ok"], r["read_emotion"],
                         r["harmonic"], r["total"]] for r in t1["rows"]]),
+          "\n**Emotion reader on single melodies.** A reading is plausible if its top emotion is one a listener "
+          "could hear in the tune (`MELODY_MOODS` in `test_sets.py`). The classifier was trained on full songs; "
+          "the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable.\n",
+          table(["reader", "plausible top emotion"],
+                [["classifier only (before the fix)", t1["emotion_reader_summary"]["classifier_only_plausible"]],
+                 ["emotion reader (now)", t1["emotion_reader_summary"]["emotion_reader_plausible"]]]),
+          f"\nReadings reliable enough to drive generation: {t1['emotion_reader_summary']['applied']:.0%}.\n",
+          table(["melody", "classifier only", "emotion reader", "applied"],
+                [[r["melody"], r["classifier_only"], r["emotion_reader"], r["applied"]] for r in t1["emotion_reader"]]),
           "\n## Test 2a: text planner accuracy\n",
           f"**Development set** (12 prompts, `PROMPTS` in `test_sets.py`): field accuracy "
           f"{t2a['field_accuracy']:.0%}, prompts fully correct {t2a['prompt_exact_match']:.0%} (planner: "

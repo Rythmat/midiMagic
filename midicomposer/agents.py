@@ -11,7 +11,8 @@ functions and return the same JSON shapes, so the API and the UI don't change:
 PLAN     {"source", "prompt", "settings": {genre, emotion, key, scale_mode, tempo, bars, form, instrumentation,
           density, generated_roles}, "emotion_scores": [{label, score}], "explanation": [str], "unmatched": [str]}
           Every setting may be null (= leave the form as it is / automatic).
-EMOTION  {"source", "emotion": [{label, score}] (top 3), "genre": [{label, score}] (top 3)}
+EMOTION  {"source", "emotion": [{label, score}] (top 3), "genre": [{label, score}] (top 3), "reliable", "note"}
+          reliable=false means "show it, but do not use it to drive generation"
 CRITIQUE {"source", "summary", "notes": [{kind, severity, message, action}]}
           kind: instrumentation | arrangement | transition | progression | emotion | validation
           severity: info | suggestion | warning
@@ -174,21 +175,44 @@ def _nearest_emotions(valence: float, arousal: float, emotions: list[str]) -> li
     return [{"label": e, "score": round(v / total, 3)} for e, v in sorted(w.items(), key=lambda kv: -kv[1])[:3]]
 
 
+CLASSIFIER_MIN_CONFIDENCE = 0.4      # below this top probability the classifier's reading is shown but not applied
+HEURISTIC_MIN_ROOT_CONFIDENCE = 0.6  # the mode/energy reading depends on major vs minor being clear
+
+
 def read_emotion(score: Score, root: RootAnalysis, classifier, emotions: list[str]) -> dict:
-    """Emotion (and genre) of a MIDI file: the trained classifier when available, else a mode/energy heuristic."""
-    if classifier is not None and root.root_pitch_class is not None:
-        probs = classifier.predict(score_features(score, root))
-        top = lambda d: [{"label": k, "score": round(v, 3)} for k, v in sorted(d.items(), key=lambda kv: -kv[1])[:3]]
-        return {"source": "classifier", "emotion": top(probs["emotion"]), "genre": top(probs["genre"])}
+    """Emotion (and genre) of a MIDI file.
+
+    The classifier was trained on full multi-track XMIDI songs. On a single part (a bare melody or a chord track) it
+    is out of distribution: in the evaluation it read every test melody and progression as fear/sad/quiet, happy
+    tunes included. So single-part inputs use the mode/energy reading (major/minor -> valence; tempo, loudness and
+    note density -> arousal), and full arrangements use the classifier.
+
+    `reliable` says whether the reading is confident enough to drive generation; the UI applies it only then.
+    """
+    pitched = [t for t in score.tracks if not t.is_drum and t.notes]
     notes = [n for t in score.tracks for n in t.notes]
     if not notes:
-        return {"source": "heuristic", "emotion": [], "genre": []}
+        return {"source": "none", "emotion": [], "genre": [], "reliable": False, "note": "No notes to read."}
+    if classifier is not None and root.root_pitch_class is not None and len(pitched) >= 2:
+        probs = classifier.predict(score_features(score, root))
+        top = lambda d: [{"label": k, "score": round(v, 3)} for k, v in sorted(d.items(), key=lambda kv: -kv[1])[:3]]
+        emo = top(probs["emotion"])
+        ok = emo[0]["score"] >= CLASSIFIER_MIN_CONFIDENCE
+        return {"source": "classifier", "emotion": emo, "genre": top(probs["genre"]), "reliable": ok,
+                "note": "Read by the emotion classifier." if ok else
+                        f"The classifier is unsure (top {emo[0]['score']:.0%}), so this was not applied."}
     valence = 0.5 if root.mode_family == "major" else -0.5
     vel = float(np.mean([n.velocity for n in notes]))
     beats = max(1.0, score.end_beat)
     onsets_per_beat = len({round(n.start, 2) for n in notes}) / beats
     arousal = float(np.clip((score.initial_bpm - 100) / 60 + (vel - 75) / 60 + (onsets_per_beat - 1.5) / 3, -1, 1))
-    return {"source": "heuristic", "emotion": _nearest_emotions(valence, arousal, emotions), "genre": []}
+    ok = root.root_pitch_class is not None and root.root_confidence >= HEURISTIC_MIN_ROOT_CONFIDENCE
+    why = "a single part" if len(pitched) < 2 else "no classifier available"
+    return {"source": "mode/energy", "emotion": _nearest_emotions(valence, arousal, emotions), "genre": [],
+            "reliable": ok,
+            "note": (f"Read from {'major' if valence > 0 else 'minor'} mode, tempo, loudness and note density "
+                     f"({why}).") if ok else
+                    "The key is ambiguous, so the major/minor mood can't be read reliably; not applied."}
 
 
 # ----------------------------------------------------------------------------- critic
