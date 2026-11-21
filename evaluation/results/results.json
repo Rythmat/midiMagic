@@ -1,11 +1,11 @@
 {
   "meta": {
-    "date": "2026-11-16 18:38",
+    "date": "2026-11-21 15:02",
     "engines": [
       "rule",
       "hybrid"
     ],
-    "machine": "Windows AMD64, Python 3.12.10",
+    "machine": "Windows AMD64, Python 3.13.5",
     "text_planner": "keywords",
     "critic": "rules"
   },
@@ -20,7 +20,7 @@
         "detected": "C major",
         "read_emotion": "happy",
         "read_genre": "pop",
-        "seconds": 0.28,
+        "seconds": 0.1,
         "total": 0.7804,
         "quality": 0.9256,
         "emotion_fit": 0.6624,
@@ -45,7 +45,7 @@
         "detected": "C major",
         "read_emotion": "happy",
         "read_genre": "pop",
-        "seconds": 5.97,
+        "seconds": 2.42,
         "total": 0.7889,
         "quality": 0.9256,
         "emotion_fit": 0.6624,
@@ -70,7 +70,7 @@
         "detected": "C major",
         "read_emotion": "warm",
         "read_genre": "pop",
-        "seconds": 0.33,
+        "seconds": 0.12,
         "total": 0.8253,
         "quality": 0.9296,
         "emotion_fit": 0.9515,
@@ -95,7 +95,7 @@
         "detected": "C major",
         "read_emotion": "warm",
         "read_genre": "pop",
-        "seconds": 6.22,
+        "seconds": 3.42,
         "total": 0.8281,
         "quality": 0.9234,
         "emotion_fit": 0.9521,
@@ -120,7 +120,7 @@
         "detected": "F major",
         "read_emotion": "warm",
         "read_genre": "pop",
-        "seconds": 0.21,
+        "seconds": 0.09,
         "total": 0.822,
         "quality": 0.9508,
         "emotion_fit": 0.9779,
@@ -145,7 +145,7 @@
         "detected": "F major",
         "read_emotion": "warm",
         "read_genre": "pop",
-        "seconds": 5.53,
+        "seconds": 2.72,
         "total": 0.829,
         "quality": 0.9508,
         "emotion_fit": 0.9779,
@@ -170,7 +170,7 @@
         "detected": "G major",
         "read_emotion": "romantic",
         "read_genre": "pop",
-        "seconds": 0.33,
+        "seconds": 0.11,
         "total": 0.8246,
         "quality": 0.934,
         "emotion_fit": 0.8866,
@@ -195,7 +195,7 @@
         "detected": "G major",
         "read_emotion": "romantic",
         "read_genre": "pop",
-        "seconds": 6.82,
+        "seconds": 3.73,
         "total": 0.8252,
         "quality": 0.934,
         "emotion_fit": 0.8866,
@@ -220,7 +220,7 @@
         "detected": "D mixolydian",
         "read_emotion": "happy",
         "read_genre": "pop",
-        "seconds": 0.22,
+        "seconds": 0.1,
         "total": 0.8304,
         "quality": 0.9488,
         "emotion_fit": 0.9708,
@@ -245,7 +245,7 @@
         "detected": "D mixolydian",
         "read_emotion": "happy",
         "read_genre": "pop",
-        "seconds": 4.25,
+        "seconds": 2.07,
         "total": 0.8348,
         "quality": 0.9452,
         "emotion_fit": 0.9964,
@@ -270,7 +270,7 @@
         "detected": "A minor",
         "read_emotion": "sad",
         "read_genre": "pop",
-        "seconds": 0.35,
+        "seconds": 0.11,
         "total": 0.8711,
         "quality": 0.9089,
         "emotion_fit": 0.9587,
@@ -295,7 +295,7 @@
         "detected": "A minor",
         "read_emotion": "sad",
         "read_genre": "pop",
-        "seconds": 7.17,
+        "seconds": 3.62,
         "total": 0.8711,
         "quality": 0.9089,
         "emotion_fit": 0.9587,
@@ -321,7 +321,7 @@
         "rhythmic": 0.94,
         "key_consistency": 0.985,
         "structure": 0.847,
-        "seconds": 0.287,
+        "seconds": 0.105,
         "valid_rate": 1.0
       },
       "hybrid": {
@@ -332,7 +332,7 @@
         "rhythmic": 0.941,
         "key_consistency": 0.986,
         "structure": 0.846,
-        "seconds": 5.993,
+        "seconds": 2.997,
         "valid_rate": 1.0
       }
     },
@@ -353,7 +353,7 @@
         "reader_source": "mode/energy",
         "applied": true,
         "classifier_plausible": false,
-        "reader_plausible": true
+        "reader_plausible": false
       },
       {
         "melody": "frere_jacques",
@@ -362,7 +362,7 @@
         "reader_source": "mode/energy",
         "applied": true,
         "classifier_plausible": false,
-        "reader_plausible": true
+        "reader_plausible": false
       },
       {
         "melody": "amazing_grace",
@@ -371,7 +371,7 @@
         "reader_source": "mode/energy",
         "applied": true,
         "classifier_plausible": false,
-        "reader_plausible": true
+        "reader_plausible": false
       },
       {
         "melody": "drunken_sailor",
@@ -380,7 +380,7 @@
         "reader_source": "mode/energy",
         "applied": false,
         "classifier_plausible": false,
-        "reader_plausible": true
+        "reader_plausible": false
       },
       {
         "melody": "greensleeves",
@@ -394,7 +394,7 @@
     ],
     "emotion_reader_summary": {
       "classifier_only_plausible": 0.0,
-      "emotion_reader_plausible": 1.0,
+      "emotion_reader_plausible": 0.333,
       "applied": 0.833
     }
   },
@@ -627,7 +627,222 @@
       }
     }
   },
-  "test2a_heldout": null,
+  "test2a_heldout": {
+    "rows": [
+      {
+        "prompt": "piano piece for the day my dog died, B flat minor",
+        "expected": {
+          "emotion": "sad",
+          "key": "A#",
+          "scale_mode": "minor"
+        },
+        "got": {
+          "emotion": null,
+          "key": null,
+          "scale_mode": "minor"
+        },
+        "all_correct": false,
+        "n_correct": 1,
+        "n_expected": 3
+      },
+      {
+        "prompt": "Smooth jazz for a candlelit dinner date with my girlfriend. Eb major, 32 bars please",
+        "expected": {
+          "genre": "jazz",
+          "emotion": "romantic",
+          "key": "D#",
+          "scale_mode": "major",
+          "bars": 32
+        },
+        "got": {
+          "genre": "jazz",
+          "emotion": "romantic",
+          "key": null,
+          "scale_mode": "major",
+          "bars": 32
+        },
+        "all_correct": false,
+        "n_correct": 4,
+        "n_expected": 5
+      },
+      {
+        "prompt": "cheerful bouncy bluegrass hoedown 140bpm",
+        "expected": {
+          "genre": "country",
+          "emotion": "happy",
+          "tempo": 140
+        },
+        "got": {
+          "genre": "country",
+          "emotion": "happy",
+          "tempo": 140
+        },
+        "all_correct": true,
+        "n_correct": 3,
+        "n_expected": 3
+      },
+      {
+        "prompt": "horror movie chase scene, something creepy and terifying",
+        "expected": {
+          "emotion": "fear"
+        },
+        "got": {
+          "emotion": "fear"
+        },
+        "all_correct": true,
+        "n_correct": 1,
+        "n_expected": 1
+      },
+      {
+        "prompt": "very soft hushed lullaby, barely audible",
+        "expected": {
+          "emotion": "quiet"
+        },
+        "got": {
+          "emotion": "quiet"
+        },
+        "all_correct": true,
+        "n_correct": 1,
+        "n_expected": 1
+      },
+      {
+        "prompt": "Grand orchestral fanfare for a royal coronation, in D major",
+        "expected": {
+          "genre": "classical",
+          "emotion": "magnificent",
+          "key": "D",
+          "scale_mode": "major"
+        },
+        "got": {
+          "genre": "classical",
+          "emotion": "magnificent",
+          "key": "D",
+          "scale_mode": "major"
+        },
+        "all_correct": true,
+        "n_correct": 4,
+        "n_expected": 4
+      },
+      {
+        "prompt": "heavy metal riff, pure rage, 16 bars",
+        "expected": {
+          "genre": "rock",
+          "emotion": "angry",
+          "bars": 16
+        },
+        "got": {
+          "genre": "rock",
+          "emotion": "angry",
+          "bars": 16
+        },
+        "all_correct": true,
+        "n_correct": 3,
+        "n_expected": 3
+      },
+      {
+        "prompt": "silly cartoon music, like a clown tripping over his own shoes",
+        "expected": {
+          "emotion": "funny"
+        },
+        "got": {
+          "emotion": "funny"
+        },
+        "all_correct": true,
+        "n_correct": 1,
+        "n_expected": 1
+      },
+      {
+        "prompt": "sluggish sleepy hammock afternoon, cant be bothered to move",
+        "expected": {
+          "emotion": "lazy"
+        },
+        "got": {
+          "emotion": "quiet"
+        },
+        "all_correct": false,
+        "n_correct": 0,
+        "n_expected": 1
+      },
+      {
+        "prompt": "8 bar irish folk jig in G",
+        "expected": {
+          "genre": "traditional",
+          "key": "G",
+          "bars": 8
+        },
+        "got": {
+          "genre": "traditional",
+          "key": "G",
+          "bars": null
+        },
+        "all_correct": false,
+        "n_correct": 2,
+        "n_expected": 3
+      },
+      {
+        "prompt": "high energy pop banger for the club, adrenaline rush, one hundred twenty eight beats per minute",
+        "expected": {
+          "genre": "pop",
+          "emotion": "exciting",
+          "tempo": 128
+        },
+        "got": {
+          "genre": "pop",
+          "emotion": "exciting",
+          "tempo": null
+        },
+        "all_correct": false,
+        "n_correct": 2,
+        "n_expected": 3
+      },
+      {
+        "prompt": "cozy evening by the fireplace with family and hot cocoa",
+        "expected": {
+          "emotion": "warm"
+        },
+        "got": {
+          "emotion": "warm"
+        },
+        "all_correct": true,
+        "n_correct": 1,
+        "n_expected": 1
+      }
+    ],
+    "field_accuracy": 0.793,
+    "prompt_exact_match": 0.583,
+    "per_field": {
+      "genre": {
+        "correct": 6,
+        "total": 6,
+        "accuracy": 1.0
+      },
+      "emotion": {
+        "correct": 9,
+        "total": 11,
+        "accuracy": 0.818
+      },
+      "key": {
+        "correct": 2,
+        "total": 4,
+        "accuracy": 0.5
+      },
+      "scale_mode": {
+        "correct": 3,
+        "total": 3,
+        "accuracy": 1.0
+      },
+      "tempo": {
+        "correct": 1,
+        "total": 2,
+        "accuracy": 0.5
+      },
+      "bars": {
+        "correct": 2,
+        "total": 3,
+        "accuracy": 0.667
+      }
+    }
+  },
   "test2b": {
     "per_emotion": {
       "angry": {
@@ -737,7 +952,7 @@
         "engine": "rule",
         "root_ok": true,
         "detected": "C major",
-        "seconds": 0.21,
+        "seconds": 0.08,
         "total": 0.7723,
         "quality": 0.9172,
         "emotion_fit": 0.4581,
@@ -758,7 +973,7 @@
         "engine": "hybrid",
         "root_ok": true,
         "detected": "C major",
-        "seconds": 3.4,
+        "seconds": 1.92,
         "total": 0.7723,
         "quality": 0.9172,
         "emotion_fit": 0.4581,
@@ -779,7 +994,7 @@
         "engine": "rule",
         "root_ok": true,
         "detected": "F major",
-        "seconds": 0.18,
+        "seconds": 0.07,
         "total": 0.7407,
         "quality": 0.9209,
         "emotion_fit": 0.3271,
@@ -800,7 +1015,7 @@
         "engine": "hybrid",
         "root_ok": true,
         "detected": "F major",
-        "seconds": 1.97,
+        "seconds": 1.19,
         "total": 0.7407,
         "quality": 0.9209,
         "emotion_fit": 0.3271,
@@ -821,7 +1036,7 @@
         "engine": "rule",
         "root_ok": false,
         "detected": "C major",
-        "seconds": 0.15,
+        "seconds": 0.06,
         "total": 0.7631,
         "quality": 0.888,
         "emotion_fit": 0.2987,
@@ -842,7 +1057,7 @@
         "engine": "hybrid",
         "root_ok": false,
         "detected": "C major",
-        "seconds": 1.39,
+        "seconds": 0.84,
         "total": 0.7631,
         "quality": 0.888,
         "emotion_fit": 0.2987,
@@ -863,7 +1078,7 @@
         "engine": "rule",
         "root_ok": true,
         "detected": "G mixolydian",
-        "seconds": 0.15,
+        "seconds": 0.06,
         "total": 0.753,
         "quality": 0.8746,
         "emotion_fit": 0.4802,
@@ -884,7 +1099,7 @@
         "engine": "hybrid",
         "root_ok": true,
         "detected": "G mixolydian",
-        "seconds": 2.88,
+        "seconds": 1.61,
         "total": 0.753,
         "quality": 0.8746,
         "emotion_fit": 0.4802,
@@ -907,7 +1122,7 @@
         "harmonic": 0.828,
         "rhythmic": 0.816,
         "key_consistency": 0.962,
-        "seconds": 0.173,
+        "seconds": 0.068,
         "root_accuracy": 0.75,
         "valid_rate": 1.0
       },
@@ -916,7 +1131,7 @@
         "harmonic": 0.828,
         "rhythmic": 0.816,
         "key_consistency": 0.962,
-        "seconds": 2.41,
+        "seconds": 1.39,
         "root_accuracy": 0.75,
         "valid_rate": 1.0
       }
@@ -926,73 +1141,73 @@
     "runs": [
       {
         "prompt": "A sad, slow piano and cello piece in D minor, 16 bars",
-        "plan": 0.014,
-        "generate": 0.286,
-        "critique": 0.011,
-        "build_on": 0.065,
-        "generate_more": 0.289,
-        "stems": 0.139,
+        "plan": 0.003,
+        "generate": 0.121,
+        "critique": 0.003,
+        "build_on": 0.026,
+        "generate_more": 0.078,
+        "stems": 0.017,
         "ok": true
       },
       {
         "prompt": "Upbeat summer pop song with guitar at 128 bpm",
-        "plan": 0.0,
-        "generate": 1.152,
-        "critique": 0.014,
-        "build_on": 0.161,
-        "generate_more": 0.895,
-        "stems": 0.159,
+        "plan": 0.004,
+        "generate": 0.418,
+        "critique": 0.006,
+        "build_on": 0.074,
+        "generate_more": 0.333,
+        "stems": 0.096,
         "ok": true
       },
       {
         "prompt": "Epic heroic orchestral theme for a movie trailer",
-        "plan": 0.0,
-        "generate": 0.343,
-        "critique": 0.008,
-        "build_on": 0.081,
-        "generate_more": 0.322,
-        "stems": 0.077,
+        "plan": 0.003,
+        "generate": 0.145,
+        "critique": 0.004,
+        "build_on": 0.043,
+        "generate_more": 0.261,
+        "stems": 0.037,
         "ok": true
       },
       {
         "prompt": "A lazy jazz trio tune in Bb for a Sunday morning",
-        "plan": 0.001,
-        "generate": 0.541,
-        "critique": 0.014,
-        "build_on": 0.092,
-        "generate_more": 0.386,
-        "stems": 0.081,
+        "plan": 0.003,
+        "generate": 0.229,
+        "critique": 0.005,
+        "build_on": 0.044,
+        "generate_more": 0.169,
+        "stems": 0.036,
         "ok": true
       },
       {
         "prompt": "Angry heavy rock riff in E minor, fast",
-        "plan": 0.017,
-        "generate": 1.657,
-        "critique": 0.007,
-        "build_on": 0.168,
-        "generate_more": 1.034,
-        "stems": 0.269,
+        "plan": 0.003,
+        "generate": 0.779,
+        "critique": 0.009,
+        "build_on": 0.077,
+        "generate_more": 0.476,
+        "stems": 0.135,
         "ok": true
       },
       {
         "prompt": "Warm cozy country ballad in G major",
-        "plan": 0.0,
-        "generate": 0.865,
-        "critique": 0.0,
-        "build_on": 0.103,
-        "generate_more": 0.627,
-        "stems": 0.162,
+        "plan": 0.002,
+        "generate": 0.433,
+        "critique": 0.005,
+        "build_on": 0.05,
+        "generate_more": 0.284,
+        "stems": 0.076,
         "ok": true
       }
     ],
     "success_rate": 1.0,
     "mean_latency_seconds": {
-      "plan": 0.005,
-      "generate": 0.807,
-      "critique": 0.009,
-      "build_on": 0.112,
-      "generate_more": 0.592,
-      "stems": 0.148
+      "plan": 0.003,
+      "generate": 0.354,
+      "critique": 0.005,
+      "build_on": 0.052,
+      "generate_more": 0.267,
+      "stems": 0.066
     },
     "critic": {
       "notes_per_result": 4.0,

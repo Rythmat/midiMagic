@@ -44,13 +44,14 @@ MELODIES = [
 
 
 # Moods a listener could reasonably hear in each melody (a reading is "plausible" if its top emotion is one of these).
+# Labelled blind, without seeing the reader's outputs or the earlier developer labels; rule: 1-3 moods each.
 MELODY_MOODS = {
-    "ode_to_joy": {"happy", "magnificent", "exciting", "warm"},
-    "twinkle_twinkle": {"happy", "quiet", "warm", "funny"},
-    "frere_jacques": {"happy", "funny", "warm"},
-    "amazing_grace": {"warm", "romantic", "quiet", "magnificent"},
-    "drunken_sailor": {"exciting", "funny", "happy", "angry", "magnificent"},
-    "greensleeves": {"sad", "romantic", "quiet"},
+    "ode_to_joy": {"happy", "magnificent"},
+    "twinkle_twinkle": {"happy", "quiet"},
+    "frere_jacques": {"happy", "funny"},
+    "amazing_grace": {"warm", "quiet", "sad"},
+    "drunken_sailor": {"exciting", "funny"},
+    "greensleeves": {"sad", "romantic"},
 }
 
 

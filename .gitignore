@@ -16,3 +16,4 @@ node_modules/
 configs/default.yaml
 reports/
 examples/
+CLAUDE.md
