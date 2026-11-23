@@ -1,0 +1,14 @@
+[
+  {"prompt": "piano piece for the day my dog died, B flat minor", "expected": {"emotion": "sad", "key": "A#", "scale_mode": "minor"}},
+  {"prompt": "Smooth jazz for a candlelit dinner date with my girlfriend. Eb major, 32 bars please", "expected": {"genre": "jazz", "emotion": "romantic", "key": "D#", "scale_mode": "major", "bars": 32}},
+  {"prompt": "cheerful bouncy bluegrass hoedown 140bpm", "expected": {"genre": "country", "emotion": "happy", "tempo": 140}},
+  {"prompt": "horror movie chase scene, something creepy and terifying", "expected": {"emotion": "fear"}},
+  {"prompt": "very soft hushed lullaby, barely audible", "expected": {"emotion": "quiet"}},
+  {"prompt": "Grand orchestral fanfare for a royal coronation, in D major", "expected": {"genre": "classical", "emotion": "magnificent", "key": "D", "scale_mode": "major"}},
+  {"prompt": "heavy metal riff, pure rage, 16 bars", "expected": {"genre": "rock", "emotion": "angry", "bars": 16}},
+  {"prompt": "silly cartoon music, like a clown tripping over his own shoes", "expected": {"emotion": "funny"}},
+  {"prompt": "sluggish sleepy hammock afternoon, cant be bothered to move", "expected": {"emotion": "lazy"}},
+  {"prompt": "8 bar irish folk jig in G", "expected": {"genre": "traditional", "key": "G", "bars": 8}},
+  {"prompt": "high energy pop banger for the club, adrenaline rush, one hundred twenty eight beats per minute", "expected": {"genre": "pop", "emotion": "exciting", "tempo": 128}},
+  {"prompt": "cozy evening by the fireplace with family and hot cocoa", "expected": {"emotion": "warm"}}
+]

@@ -253,9 +253,9 @@ def heldout_section(h) -> str:
         return ("\n**Held-out set: not run yet.** Ask a teammate who has not read `agents.py` to write 10-15 prompts "
                 "with their intended settings into `evaluation/heldout_prompts.json` (format in "
                 "`evaluation/README.md`), then rerun this script.\n")
-    return (f"\n**Held-out set** (`evaluation/heldout_prompts.json`, {len(h['rows'])} prompts written by someone who "
-            f"had not seen the planner): field accuracy {h['field_accuracy']:.0%}, prompts fully correct "
-            f"{h['prompt_exact_match']:.0%}.\n\n"
+    return (f"\n**Held-out set** (`evaluation/heldout_prompts.json`, {len(h['rows'])} prompts written blind to "
+            f"`agents.py`): field accuracy {h['field_accuracy']:.0%}, "
+            f"prompts fully correct {h['prompt_exact_match']:.0%}.\n\n"
             + table(["prompt", "expected", "got", "all correct"],
                     [[r["prompt"], json.dumps(r["expected"]), json.dumps(r["got"]), r["all_correct"]] for r in h["rows"]]))
 
@@ -277,7 +277,9 @@ def markdown(res: dict) -> str:
                         r["harmonic"], r["total"]] for r in t1["rows"]]),
           "\n**Emotion reader on single melodies.** A reading is plausible if its top emotion is one a listener "
           "could hear in the tune (`MELODY_MOODS` in `test_sets.py`). The classifier was trained on full songs; "
-          "the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable.\n",
+          "the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable. "
+          "`MELODY_MOODS` has 2-3 moods per melody; with 6 melodies the score mostly reflects how many moods each "
+          "set allows.\n",
           table(["reader", "plausible top emotion"],
                 [["classifier only (before the fix)", t1["emotion_reader_summary"]["classifier_only_plausible"]],
                  ["emotion reader (now)", t1["emotion_reader_summary"]["emotion_reader_plausible"]]]),

@@ -10,7 +10,8 @@ then with fixed prompts and chords, then the whole pipeline with the GUI. (Lyric
 | `user_study.md` | The user-study protocol and questionnaire (the human half of test 3) |
 | `user_study_results.csv` | Empty sheet to fill in, one row per participant |
 | `analyze_user_study.py` | Turns the sheet into `results/user_study.md` (SUS score, task completion, question means) |
-| `heldout_prompts.json` | *(to be written by a teammate)* held-out prompts for a fair planner score |
+| `heldout_prompts.json` | 12 held-out prompts, written blind to `agents.py`, for a fair planner score |
+| `musical_review.md` | Symbolic review of 10 generations across genres, moods and engines |
 
 ```bash
 python evaluation/run_evaluation.py                  # ~2 min on a laptop CPU (rule + hybrid engines)
@@ -37,15 +38,15 @@ magnificent, quiet, romantic, sad, warm · `key`: C C# D D# E F F# G G# A A# B (
 major, minor · `tempo`, `bars`: numbers. Only list what the prompt actually says. Rerun the evaluation afterwards.
 When the LLM planner replaces the keyword one, the same held-out set compares the two.
 
-## Findings (run of 2026-11-16, see `results/results.md` for every number)
+## Findings (run of 2026-11-20, see `results/results.md` for every number)
 
 **Test 1, melodies.**
 * Key root detected correctly for 6 of 6 melodies. The mode was wrong once: Drunken Sailor (D dorian) was read as
   D mixolydian.
 * Every output passed validation and the melody was kept unchanged.
 * Rule and hybrid engines score about the same (harmonic compatibility 0.87, total 0.83). The rule engine takes
-  0.3 s per request and the hybrid 6 s on a CPU, so the rule engine is the better default.
-* **Emotion reader on a bare melody: found and fixed.**
+  under 0.1 s per request and the hybrid 1–6 s depending on the CPU, so the rule engine is the better default.
+* **Emotion reader on a bare melody: found, partly fixed (it separates major from minor only).**
   * The first run showed the classifier reading every melody as "fear" or "sad", happy tunes included (0 of 6
     plausible). It was trained on full multi-track XMIDI songs, so a single melody line is out of distribution. The
     same happened for every chord-only input.
@@ -53,14 +54,22 @@ When the LLM planner replaces the keyword one, the same held-out set compares th
     arrangements still use the classifier.
   * A reading only drives generation when it is reliable: the key is clear, or the classifier is at least 40% sure.
     Otherwise the user's settings stay and the UI says why.
-  * Result: 6 of 6 plausible readings (Ode to Joy → happy, Greensleeves → sad). 5 of 6 were applied; Drunken
-    Sailor's key is ambiguous, so it wasn't.
-  * Caveat: the "plausible moods" (`MELODY_MOODS`) were labelled by the developer. A teammate should re-label them
-    without looking at the readings before this number goes in the report.
-  * Generation also improved once the right mood drove it: the total went from 0.76 to 0.83 with the rule engine.
+  * Result: **2 of 6** plausible readings (Ode to Joy → happy, Greensleeves → sad). `MELODY_MOODS` was re-labelled
+    blind, without seeing the readings or the old labels (2–3 moods each). The developer's labels (3–5 moods each)
+    gave 6 of 6, so with 6 melodies the score mostly reflects set size.
+  * The misses lean on "warm" (Twinkle, Frère Jacques), plus "romantic" (Amazing Grace) and "magnificent" (Drunken
+    Sailor). The mode/energy reading separates major from minor but not moods within the same mode.
+  * 5 of 6 readings were applied (Drunken Sailor's key is ambiguous), so 3 implausible moods still drive generation.
+    Raise the reliability bar or show the reading as a suggestion rather than applying it.
+  * The rule engine's total rose from 0.76 (run of 2026-11-16) to 0.83 once the reader's mood drove generation, but
+    that score does not measure mood fit.
 
 **Test 2a, planner.**
-* 100% field accuracy on the development prompts. This is optimistic (see above); the held-out run is still to do.
+* 100% field accuracy on the development prompts, but **79%** on the held-out set (7 of 12 prompts fully correct).
+* Held-out misses: a key without "in"/"key of" before it ("Eb major"), a spelled-out "flat" ("B flat"; "in B flat"
+  would even give B), the singular "8 bar", tempo in words ("one hundred twenty eight"), a mood implied without a
+  keyword ("the day my dog died" → sad), and "sluggish sleepy" read as quiet instead of lazy (arguably either).
+* The planner was not tuned to these prompts, so the set stays held out for comparing the LLM planner later.
 
 **Test 2b, emotion → music.**
 * The requested emotion clearly shapes the music:
@@ -86,3 +95,11 @@ When the LLM planner replaces the keyword one, the same held-out set compares th
 * Only 4% of its notes carry a one-click fix, because regenerating can't change an instrument. The LLM critic could
   add actions that change settings.
 * The user study is still to run (`user_study.md`).
+
+**Musical review** (`musical_review.md`: 10 generations, 34 issues: 8 jarring, 15 noticeable, 11 nitpick).
+* Neural engine (one sample): it ignores the form and the planned chords; the bass's downbeat misses the planned
+  root in 40 of 55 bars.
+* Rule engine: the lead's cadence tonic clashes with V by a semitone (`gen_lead_melody`); the pad is often the top
+  voice instead of the lead (`planner.ROLE_REGISTERS`); 08's walking bass ends on a wrong note (`gen_walking_bass`).
+* The chorus keeps the verse's rhythms and differs mainly in loudness. Separately, fear, lazy and magnificent are
+  arranged close to the genre default.

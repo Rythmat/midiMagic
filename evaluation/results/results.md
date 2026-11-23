@@ -1,6 +1,6 @@
 # MIDI Magic evaluation results
 
-Generated 2026-11-16 18:38 on Windows AMD64, Python 3.12.10 by `python evaluation/run_evaluation.py`. Engines: rule, hybrid. Seed 0, 3 candidates per request; metrics are for the top-ranked candidate (0-1, higher is better).
+Generated 2026-11-21 15:02 on Windows AMD64, Python 3.13.5 by `python evaluation/run_evaluation.py`. Engines: rule, hybrid. Seed 0, 3 candidates per request; metrics are for the top-ranked candidate (0-1, higher is better).
 
 ## Test 1: melodic lines in isolation
 
@@ -8,8 +8,8 @@ Six fixed melodies (`evaluation/test_sets.py`). The app detects key and emotion,
 
 | engine | key root acc. | mode acc. | harmonic | rhythmic | key consist. | structure | total | valid | s/request |
 |---|---|---|---|---|---|---|---|---|---|
-| rule | 1.000 | 0.833 | 0.871 | 0.940 | 0.985 | 0.847 | 0.826 | 1.000 | 0.287 |
-| hybrid | 1.000 | 0.833 | 0.871 | 0.941 | 0.986 | 0.846 | 0.830 | 1.000 | 5.993 |
+| rule | 1.000 | 0.833 | 0.871 | 0.940 | 0.985 | 0.847 | 0.826 | 1.000 | 0.105 |
+| hybrid | 1.000 | 0.833 | 0.871 | 0.941 | 0.986 | 0.846 | 0.830 | 1.000 | 2.997 |
 
 
 | melody | engine | detected key | root ok | mode ok | read emotion | harmonic | total |
@@ -27,12 +27,12 @@ Six fixed melodies (`evaluation/test_sets.py`). The app detects key and emotion,
 | greensleeves | rule | A minor | True | True | sad | 0.891 | 0.871 |
 | greensleeves | hybrid | A minor | True | True | sad | 0.891 | 0.871 |
 
-**Emotion reader on single melodies.** A reading is plausible if its top emotion is one a listener could hear in the tune (`MELODY_MOODS` in `test_sets.py`). The classifier was trained on full songs; the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable.
+**Emotion reader on single melodies.** A reading is plausible if its top emotion is one a listener could hear in the tune (`MELODY_MOODS` in `test_sets.py`). The classifier was trained on full songs; the emotion reader now uses a mode/energy reading for single parts and is applied only when reliable. `MELODY_MOODS` has 2-3 moods per melody; with 6 melodies the score mostly reflects how many moods each set allows.
 
 | reader | plausible top emotion |
 |---|---|
 | classifier only (before the fix) | 0.000 |
-| emotion reader (now) | 1.000 |
+| emotion reader (now) | 0.333 |
 
 Readings reliable enough to drive generation: 83%.
 
@@ -75,8 +75,22 @@ Readings reliable enough to drive generation: 83%.
 | Happy traditional folk dance in A, 32 bars | {"genre": "traditional", "emotion": "happy", "key": "A", "bars": 32} | {"genre": "traditional", "emotion": "happy", "key": "A", "bars": 32} | True |
 | Exciting energetic rock anthem with drums | {"genre": "rock", "emotion": "exciting"} | {"genre": "rock", "emotion": "exciting"} | True |
 
-**Held-out set: not run yet.** Ask a teammate who has not read `agents.py` to write 10-15 prompts with their intended settings into `evaluation/heldout_prompts.json` (format in `evaluation/README.md`), then rerun this script.
+**Held-out set** (`evaluation/heldout_prompts.json`, 12 prompts written blind to `agents.py`): field accuracy 79%, prompts fully correct 58%.
 
+| prompt | expected | got | all correct |
+|---|---|---|---|
+| piano piece for the day my dog died, B flat minor | {"emotion": "sad", "key": "A#", "scale_mode": "minor"} | {"emotion": null, "key": null, "scale_mode": "minor"} | False |
+| Smooth jazz for a candlelit dinner date with my girlfriend. Eb major, 32 bars please | {"genre": "jazz", "emotion": "romantic", "key": "D#", "scale_mode": "major", "bars": 32} | {"genre": "jazz", "emotion": "romantic", "key": null, "scale_mode": "major", "bars": 32} | False |
+| cheerful bouncy bluegrass hoedown 140bpm | {"genre": "country", "emotion": "happy", "tempo": 140} | {"genre": "country", "emotion": "happy", "tempo": 140} | True |
+| horror movie chase scene, something creepy and terifying | {"emotion": "fear"} | {"emotion": "fear"} | True |
+| very soft hushed lullaby, barely audible | {"emotion": "quiet"} | {"emotion": "quiet"} | True |
+| Grand orchestral fanfare for a royal coronation, in D major | {"genre": "classical", "emotion": "magnificent", "key": "D", "scale_mode": "major"} | {"genre": "classical", "emotion": "magnificent", "key": "D", "scale_mode": "major"} | True |
+| heavy metal riff, pure rage, 16 bars | {"genre": "rock", "emotion": "angry", "bars": 16} | {"genre": "rock", "emotion": "angry", "bars": 16} | True |
+| silly cartoon music, like a clown tripping over his own shoes | {"emotion": "funny"} | {"emotion": "funny"} | True |
+| sluggish sleepy hammock afternoon, cant be bothered to move | {"emotion": "lazy"} | {"emotion": "quiet"} | False |
+| 8 bar irish folk jig in G | {"genre": "traditional", "key": "G", "bars": 8} | {"genre": "traditional", "key": "G", "bars": null} | False |
+| high energy pop banger for the club, adrenaline rush, one hundred twenty eight beats per minute | {"genre": "pop", "emotion": "exciting", "tempo": 128} | {"genre": "pop", "emotion": "exciting", "tempo": null} | False |
+| cozy evening by the fireplace with family and hot cocoa | {"emotion": "warm"} | {"emotion": "warm"} | True |
 
 ## Test 2b: does the requested emotion reach the music?
 
@@ -117,8 +131,8 @@ Four fixed progressions as the locked input; the app generates a lead melody and
 
 | engine | key root acc. | harmonic | rhythmic | key consist. | total | valid | s/request |
 |---|---|---|---|---|---|---|---|
-| rule | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 0.173 |
-| hybrid | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 2.410 |
+| rule | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 0.068 |
+| hybrid | 0.750 | 0.828 | 0.816 | 0.962 | 0.757 | 1.000 | 1.390 |
 
 
 | progression | engine | detected key | root ok | harmonic | total |
@@ -138,12 +152,12 @@ Prompt → plan → generate → critic → build on this (+ pad) → stems, for
 
 | step | mean seconds |
 |---|---|
-| plan | 0.005 |
-| generate | 0.807 |
-| critique | 0.009 |
-| build_on | 0.112 |
-| generate_more | 0.592 |
-| stems | 0.148 |
+| plan | 0.003 |
+| generate | 0.354 |
+| critique | 0.005 |
+| build_on | 0.052 |
+| generate_more | 0.267 |
+| stems | 0.066 |
 
 Critic: 4.0 notes per result; by kind {'instrumentation': 11, 'progression': 7, 'emotion': 6}; by severity {'suggestion': 11, 'info': 12, 'warning': 1}; 4% carry a one-click fix.
 
