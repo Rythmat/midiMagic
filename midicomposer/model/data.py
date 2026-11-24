@@ -22,7 +22,8 @@ from ..midi_io import load_midi
 from ..representation import normalize_score
 from ..root import RootAnalysis
 from ..theory import gm_family
-from .tokenizer import ExampleBuilder, TrackTokens, condition_prefix, encode_bar, sample_task, split_into_bars
+from .tokenizer import (ExampleBuilder, PackedBars, TrackTokens, condition_prefix, encode_bar, sample_task,
+                        split_into_bars)
 from .vocab import Vocab, density_bin, form_token, meter_token, section_token, tempo_bin
 
 
@@ -62,8 +63,7 @@ def _tokenize_one(args) -> dict | None:
     for nt in piece.tracks:
         notes = [(n.onset, n.duration, n.original_pitch if nt.is_drum else n.relative_pitch, n.velocity) for n in nt.notes]
         per_bar = split_into_bars(notes, starts, lens)
-        bars = [np.asarray(encode_bar(per_bar[i], nt.is_drum, starts[i], lens[i], vocab), dtype=np.int16)
-                for i in range(n_bars)]
+        bars = PackedBars([encode_bar(per_bar[i], nt.is_drum, starts[i], lens[i], vocab) for i in range(n_bars)])
         tracks.append(TrackTokens(nt.role or "lead", nt.program, nt.is_drum, bars))
     try:
         secs = detect_sections(score, grid, rec["root_pitch_class"])

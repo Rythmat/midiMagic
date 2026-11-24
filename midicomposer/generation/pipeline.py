@@ -30,7 +30,7 @@ from ..validation import note_signature, repair_score, validate_score
 from .rule_based import GenContext, RelNote, generate_role, order_roles, skyline
 
 DEFAULT_CLASSIFIER = "checkpoints/classifiers.pt"
-DEFAULT_MODEL = "checkpoints/composer_dev.pt"
+DEFAULT_MODEL = "checkpoints/composer_60_40.pt"
 MAX_VARIATIONS = 8
 MAX_BARS = 256
 

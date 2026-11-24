@@ -3,6 +3,9 @@
 Anchor prompts use lead tracks from XMIDI *test-split* files (never seen in training).
 
     python scripts/evaluate_engines.py --data data/xmidi --xmidi-root XMIDI_Dataset --n-anchors 8
+
+Pass several checkpoints to --model to compare them on identical prompts and seeds; the neural and hybrid engines
+then appear once per checkpoint (e.g. `neural:composer_dev`, `neural:composer_60_40`).
 """
 from __future__ import annotations
 
@@ -17,7 +20,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from midicomposer.generation.pipeline import GenerationRequest, run_generation  # noqa: E402
+from midicomposer.generation.pipeline import DEFAULT_MODEL, GenerationRequest, run_generation  # noqa: E402
 from midicomposer.midi_io import Score, Track, load_midi, score_to_bytes  # noqa: E402
 
 METRICS = ["total", "quality", "genre", "emotion", "key_consistency", "harmonic_compatibility",
@@ -72,26 +75,35 @@ def main() -> None:
     ap.add_argument("--engines", default="rule,neural,hybrid")
     ap.add_argument("--out", default="reports/engine_comparison")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--model", nargs="+", default=[DEFAULT_MODEL], help="neural checkpoint(s) for the neural/hybrid engines")
     a = ap.parse_args()
-    engines = a.engines.split(",")
+    for m in a.model:
+        if not Path(m).exists():
+            raise SystemExit(f"no checkpoint at {m}")
+    runs = []  # (label, engine, model_path)
+    for eng in a.engines.split(","):
+        if eng == "rule":
+            runs.append(("rule", "rule", None))
+        else:
+            runs += [(eng if len(a.model) == 1 else f"{eng}:{Path(m).stem}", eng, m) for m in a.model]
     rows = []
     for genre, emotion, key in META_PROMPTS:
-        for eng in engines:
+        for label, eng, model in runs:
             t = time.time()
             state = run_generation(GenerationRequest(genre=genre, emotion=emotion, key=key, bars=16, n_variations=2,
-                                                     seed=a.seed, engine=eng,
+                                                     seed=a.seed, engine=eng, model_path=model,
                                                      generated_roles=["lead_melody", "chord_bed", "bass_line", "drums"]))
-            rows.append(_row("metadata", f"{genre}/{emotion}/{key}", eng, state, time.time() - t))
+            rows.append(_row("metadata", f"{genre}/{emotion}/{key}", label, state, time.time() - t))
             print(rows[-1], flush=True)
     for rec in anchor_files(Path(a.data), a.n_anchors, a.seed):
         anchor = score_to_bytes(lead_excerpt(Path(a.xmidi_root) / rec["path"], rec["lead"]))
-        for eng in engines:
+        for label, eng, model in runs:
             t = time.time()
             state = run_generation(GenerationRequest(mode="midi", input_role="lead", genre=rec["genre"], emotion=rec["emotion"],
-                                                     n_variations=2, seed=a.seed, engine=eng,
+                                                     n_variations=2, seed=a.seed, engine=eng, model_path=model,
                                                      generated_roles=["chord_bed", "bass_line", "drums"]),
                                    input_bytes=anchor, input_name=rec["path"])
-            rows.append(_row("anchor", rec["path"], eng, state, time.time() - t))
+            rows.append(_row("anchor", rec["path"], label, state, time.time() - t))
             print(rows[-1], flush=True)
     summary = {"metadata": summarize([r for r in rows if r["kind"] == "metadata"]),
                "anchor": summarize([r for r in rows if r["kind"] == "anchor"])}
@@ -110,6 +122,9 @@ def main() -> None:
 
 
 def _row(kind, prompt, eng, state, secs):
+    missing = [w for w in state.warnings if "no trained checkpoint" in w]
+    if missing:  # the pipeline silently falls back to the rule engine; that would make the comparison meaningless
+        raise SystemExit(f"{eng}: {missing[0]}")
     c = state.candidates[0]
     row = {"kind": kind, "prompt": prompt, "engine": eng, "seconds": round(secs, 2), "valid": c.validation["passed"],
            "total": c.scores["total"], "quality": c.scores["quality"], "genre": c.scores["genre"],

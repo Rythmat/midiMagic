@@ -54,7 +54,7 @@ _ENV_PARSERS = {"bool": lambda v: v.strip().lower() in ("1", "true", "yes", "on"
 @dataclass
 class Settings:
     classifier_checkpoint: str | None = "checkpoints/classifiers.pt"
-    model_checkpoint: str | None = "checkpoints/composer_dev.pt"
+    model_checkpoint: str | None = "checkpoints/composer_60_40.pt"
     label_vocab: str | None = "data/xmidi/label_vocab.json"
     max_upload_mb: float = 10
     job_workers: int = 2

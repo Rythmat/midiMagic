@@ -41,13 +41,26 @@ def load_config(path: str | Path | None, overrides: dict | None = None) -> dict:
     return cfg
 
 
-def _count_usable(data_dir: str, split: str) -> int:
-    n = 0
+def _usable_by_split(data_dir: str) -> dict[str, int]:
+    counts = {"train": 0, "val": 0, "test": 0}
     with (Path(data_dir) / "manifest.jsonl").open(encoding="utf-8") as fh:
         for line in fh:
-            if f'"split": "{split}"' in line and '"usable_for_training": true' in line:
-                n += 1
-    return n
+            if '"usable_for_training": true' in line:
+                for split in counts:
+                    if f'"split": "{split}"' in line:
+                        counts[split] += 1
+                        break
+    return counts
+
+
+def honesty_note(n_files: int, usable: dict[str, int], step: int) -> str:
+    """What the checkpoint was trained on, in words the UI shows next to the neural engine."""
+    n_train, n_all = usable["train"], sum(usable.values())
+    if n_files < n_train:
+        return (f"Trained on {n_files} of {n_train} usable XMIDI training files for {step} steps. "
+                "This is a development-scale model, not a fully trained one.")
+    return (f"Trained on all {n_train} usable XMIDI training files ({100 * n_train / max(n_all, 1):.0f}% of the "
+            f"{n_all} usable files; the rest is held out for validation and testing) for {step} steps.")
 
 
 def _label_lists(data_dir: str) -> tuple[list[str], list[str]]:
@@ -169,7 +182,8 @@ def evaluate(model, loader, dev, use_amp) -> float:
 
 
 def _save(path: Path, model, mcfg, vocab, cfg, history, step, tokens_seen, tr_cache, va_cache, t_train, best_val):
-    n_usable_train = _count_usable(cfg["data_dir"], "train")
+    usable = _usable_by_split(cfg["data_dir"])
+    n_usable_train = usable["train"]
     info = {
         "model_version": f"hierarchical-composer-{__version__}-step{step}",
         "package_version": __version__, "trained_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -183,10 +197,7 @@ def _save(path: Path, model, mcfg, vocab, cfg, history, step, tokens_seen, tr_ca
         "training_tasks": ["masked-track reconstruction (random context subsets incl. none)",
                            "masked-section infilling", "continuation"],
         "vocab": vocab.to_dict(), "history": history,
-        "honesty_note": (f"Trained on {tr_cache['n_files']} of {n_usable_train} usable XMIDI training files "
-                         f"for {step} steps. This is a development-scale model, not a fully trained one."
-                         if tr_cache["n_files"] < n_usable_train else
-                         f"Trained on all {n_usable_train} usable XMIDI training files for {step} steps."),
+        "honesty_note": honesty_note(tr_cache["n_files"], usable, step),
     }
     torch.save({"state_dict": {k: v.cpu() for k, v in model.state_dict().items()}, "model_config": mcfg.to_dict(),
                 "genres": vocab.genres, "emotions": vocab.emotions, "info": info, "train_config": cfg}, path)

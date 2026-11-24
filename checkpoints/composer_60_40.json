@@ -1,0 +1,255 @@
+{
+  "model_version": "hierarchical-composer-0.1.0-step39000",
+  "package_version": "0.1.0",
+  "trained_at": "2026-11-24 01:32:28",
+  "step": 39000,
+  "max_steps": 40000,
+  "tokens_seen_target": 210511081,
+  "best_val_loss": 0.6003,
+  "train_seconds": 3542.4,
+  "n_params": 6819328,
+  "model_config": {
+    "vocab_size": 542,
+    "d_model": 256,
+    "n_layers": 6,
+    "n_heads": 8,
+    "d_ff": 1024,
+    "bar_layers": 2,
+    "max_len": 1024,
+    "max_bars": 64,
+    "dropout": 0.1
+  },
+  "train_files": 54824,
+  "val_files": 2836,
+  "usable_train_files_in_manifest": 54824,
+  "trained_on_all_usable_train_files": true,
+  "data_dir": "data/xmidi_60_40",
+  "window_bars": 8,
+  "training_tasks": [
+    "masked-track reconstruction (random context subsets incl. none)",
+    "masked-section infilling",
+    "continuation"
+  ],
+  "vocab": {
+    "genres": [
+      "classical",
+      "country",
+      "jazz",
+      "pop",
+      "rock",
+      "traditional"
+    ],
+    "emotions": [
+      "angry",
+      "exciting",
+      "fear",
+      "funny",
+      "happy",
+      "lazy",
+      "magnificent",
+      "quiet",
+      "romantic",
+      "sad",
+      "warm"
+    ],
+    "size": 542
+  },
+  "history": [
+    {
+      "step": 1000,
+      "train_loss": 2.7331,
+      "val_loss": 1.7973
+    },
+    {
+      "step": 2000,
+      "train_loss": 1.5012,
+      "val_loss": 1.2627
+    },
+    {
+      "step": 3000,
+      "train_loss": 1.2043,
+      "val_loss": 1.034
+    },
+    {
+      "step": 4000,
+      "train_loss": 1.0489,
+      "val_loss": 0.9446
+    },
+    {
+      "step": 5000,
+      "train_loss": 0.9479,
+      "val_loss": 0.868
+    },
+    {
+      "step": 6000,
+      "train_loss": 0.8901,
+      "val_loss": 0.8191
+    },
+    {
+      "step": 7000,
+      "train_loss": 0.8404,
+      "val_loss": 0.7834
+    },
+    {
+      "step": 8000,
+      "train_loss": 0.8064,
+      "val_loss": 0.7644
+    },
+    {
+      "step": 9000,
+      "train_loss": 0.781,
+      "val_loss": 0.7456
+    },
+    {
+      "step": 10000,
+      "train_loss": 0.7587,
+      "val_loss": 0.7279
+    },
+    {
+      "step": 11000,
+      "train_loss": 0.7525,
+      "val_loss": 0.715
+    },
+    {
+      "step": 12000,
+      "train_loss": 0.7301,
+      "val_loss": 0.7072
+    },
+    {
+      "step": 13000,
+      "train_loss": 0.7241,
+      "val_loss": 0.6996
+    },
+    {
+      "step": 14000,
+      "train_loss": 0.7167,
+      "val_loss": 0.6897
+    },
+    {
+      "step": 15000,
+      "train_loss": 0.7072,
+      "val_loss": 0.6821
+    },
+    {
+      "step": 16000,
+      "train_loss": 0.6963,
+      "val_loss": 0.6785
+    },
+    {
+      "step": 17000,
+      "train_loss": 0.694,
+      "val_loss": 0.6721
+    },
+    {
+      "step": 18000,
+      "train_loss": 0.687,
+      "val_loss": 0.6659
+    },
+    {
+      "step": 19000,
+      "train_loss": 0.6853,
+      "val_loss": 0.6575
+    },
+    {
+      "step": 20000,
+      "train_loss": 0.6747,
+      "val_loss": 0.6547
+    },
+    {
+      "step": 21000,
+      "train_loss": 0.6677,
+      "val_loss": 0.6493
+    },
+    {
+      "step": 22000,
+      "train_loss": 0.6533,
+      "val_loss": 0.6447
+    },
+    {
+      "step": 23000,
+      "train_loss": 0.653,
+      "val_loss": 0.6373
+    },
+    {
+      "step": 24000,
+      "train_loss": 0.6546,
+      "val_loss": 0.6352
+    },
+    {
+      "step": 25000,
+      "train_loss": 0.6422,
+      "val_loss": 0.6314
+    },
+    {
+      "step": 26000,
+      "train_loss": 0.6432,
+      "val_loss": 0.6287
+    },
+    {
+      "step": 27000,
+      "train_loss": 0.6342,
+      "val_loss": 0.6275
+    },
+    {
+      "step": 28000,
+      "train_loss": 0.6394,
+      "val_loss": 0.6226
+    },
+    {
+      "step": 29000,
+      "train_loss": 0.6357,
+      "val_loss": 0.6176
+    },
+    {
+      "step": 30000,
+      "train_loss": 0.6296,
+      "val_loss": 0.6168
+    },
+    {
+      "step": 31000,
+      "train_loss": 0.6181,
+      "val_loss": 0.6118
+    },
+    {
+      "step": 32000,
+      "train_loss": 0.6232,
+      "val_loss": 0.6127
+    },
+    {
+      "step": 33000,
+      "train_loss": 0.6139,
+      "val_loss": 0.6091
+    },
+    {
+      "step": 34000,
+      "train_loss": 0.6157,
+      "val_loss": 0.6072
+    },
+    {
+      "step": 35000,
+      "train_loss": 0.618,
+      "val_loss": 0.6051
+    },
+    {
+      "step": 36000,
+      "train_loss": 0.6149,
+      "val_loss": 0.6053
+    },
+    {
+      "step": 37000,
+      "train_loss": 0.6167,
+      "val_loss": 0.6018
+    },
+    {
+      "step": 38000,
+      "train_loss": 0.6155,
+      "val_loss": 0.6027
+    },
+    {
+      "step": 39000,
+      "train_loss": 0.6098,
+      "val_loss": 0.6003
+    }
+  ],
+  "honesty_note": "Trained on all 54824 usable XMIDI training files (57% of the 96395 usable files; the rest is held out for validation and testing) for 39000 steps."
+}

@@ -1,0 +1,40 @@
+# Longer training run on a 60/40 train/test split of XMIDI.
+#
+#   python scripts/resplit_manifest.py --src data/xmidi --out data/xmidi_60_40 --train 0.57 --val 0.03
+#   python -m midicomposer.cli train --config configs/train_60_40.yaml
+#   python scripts/eval_test_loss.py --checkpoint checkpoints/composer_60_40.pt
+#
+# Split (usable files): train 54,824 (57%) + val 2,836 (3%, carved from the 60% training side and used only
+# to pick the best checkpoint) | test 38,735 (40%, never read during training).
+# Same architecture as composer_dev (6.8M params) so the checkpoint is a drop-in replacement; trained on the
+# whole train split for 10x the steps of the dev run.
+data_dir: data/xmidi_60_40
+xmidi_root: XMIDI_Dataset
+cache_dir: data/token_cache_60_40   # separate from data/token_cache: cache files are keyed by file count only
+max_train_files: null               # all usable train files of the 60/40 manifest
+max_val_files: null
+max_bars_per_file: 96
+window_bars: 8
+max_len: 1024
+d_model: 256
+n_layers: 6
+n_heads: 8
+d_ff: 1024
+bar_layers: 2
+max_bars: 64
+dropout: 0.1
+batch_size: 24
+lr: 0.0006
+weight_decay: 0.05
+warmup_steps: 1000
+max_steps: 40000
+eval_every: 1000
+eval_batches: 40
+grad_clip: 1.0
+seed: 0
+device: auto
+amp: true
+num_workers: 0                      # >0 on Windows copies the whole token cache into every worker
+prep_workers: 16
+log_every: 200
+out: checkpoints/composer_60_40.pt

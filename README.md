@@ -27,26 +27,33 @@ or refreshes (see [Transient storage](#transient-storage)), so download what you
 |---|---|
 | XMIDI preprocessing | Run on **all 108,023 files** (240 s, 20 workers). 96,395 usable; 9,301 duplicates detected. Report: [`reports/dataset_report.md`](reports/dataset_report.md) |
 | Genre/emotion classifiers | Trained on the full train split (77,086 files). Held-out **test accuracy: genre 52.8% (majority baseline 23.6%), emotion 48.1% (baseline 20.6%)**. [`reports/classifier_report.json`](reports/classifier_report.json) |
-| Neural track generator | **Development-scale only**: 6.8M parameters, trained on **8,000 of 77,086** usable training files for 4,000 steps (7.6 min, one RTX 5070 laptop GPU). Validation loss 5.26 → 1.234 and still falling, so it is under-trained. [`reports/composer_dev_training.json`](reports/composer_dev_training.json). It has **not** been trained on all of XMIDI. |
+| Neural track generator | `checkpoints/composer_60_40.pt`, used by the app: 6.8M parameters, trained on **all 54,824** training files of a 60/40 train/test split of XMIDI (57% train, 3% validation, 40% held-out test) for 40,000 steps (59 min, one RTX 5070 Ti laptop GPU). Best validation loss 0.600; **held-out test loss 0.590** (perplexity 1.81). It has **not** been trained on all of XMIDI, and a bigger model (`configs/full_train.yaml`) has not been run. [`checkpoints/composer_60_40.json`](checkpoints/composer_60_40.json) |
+| Earlier neural model | `checkpoints/composer_dev.pt`, kept for comparison: same architecture, trained on 8,000 of 77,086 files for 4,000 steps (7.6 min). Validation loss 1.234; test loss 1.233 on the same held-out files as above. |
 | Rule-based generator | Complete, deterministic, the default engine. |
-| Tests | 153 Python tests + 13 Node UI-state tests, all passing. |
+| Tests | 173 Python tests + 13 Node UI-state tests, all passing. |
 
-Engine comparison (best of 2 candidates, mean over prompts; anchor prompts are 16-bar melodies from XMIDI
-**test-split** files): [`reports/engine_comparison.md`](reports/engine_comparison.md)
+Engine comparison (best of 2 candidates, mean over prompts; 6 metadata prompts and 24 anchor prompts, which are
+16-bar melodies from XMIDI **test-split** files that neither neural model trained on):
+`python scripts/evaluate_engines.py --n-anchors 24 --model checkpoints/composer_dev.pt checkpoints/composer_60_40.pt --out reports/engine_comparison_60_40`
 
-| | rule | neural (dev) | hybrid |
-|---|---:|---:|---:|
-| Metadata prompts: harmonic compatibility | 0.903 | 0.647 | 0.896 |
-| Metadata prompts: genre score | 0.857 | **0.962** | 0.853 |
-| Anchor prompts: harmonic compatibility | **0.871** | 0.654 | **0.871** |
-| Anchor prompts: total (ranking score) | 0.794 | 0.838 | **0.869** |
-| Valid output rate | 100% | 100% | 100% |
-| Seconds per request | 0.1 | 6–7 | 3–4 |
+| | rule | neural (60/40) | neural (dev) | hybrid (60/40) |
+|---|---:|---:|---:|---:|
+| Metadata prompts: harmonic compatibility | **0.903** | 0.828 | 0.647 | 0.890 |
+| Metadata prompts: genre score | 0.857 | 0.911 | **0.962** | 0.853 |
+| Anchor prompts: harmonic compatibility | **0.869** | 0.751 | 0.637 | 0.841 |
+| Anchor prompts: total (ranking score) | 0.774 | 0.835 | 0.828 | **0.857** |
+| Valid output rate | 100% | 100% | 100% | 100% |
+| Seconds per request (laptop GPU) | 0.1 | 10–14 | 9–16 | 5–7 |
 
-In short: the rules are harmonically stronger; the dev neural model sounds more "XMIDI-like" to the genre
-classifier; the hybrid engine (mixing both candidate types and letting ranking choose) scores best overall. The
-neural numbers should improve substantially with the full training configuration (`configs/full_train.yaml`),
-which has not been run.
+In short:
+* **Harmony.** The 60/40 model fits the chords far better than the dev model: harmonic compatibility 0.64 → 0.77
+  over all 30 prompts, better on 25 of them. It is still below the rule engine (0.87–0.90).
+* **Other scores.** Its key consistency and quality score are slightly higher, and its total beats the dev model's
+  on 21 of 30 prompts. Its note density drifts further from the target (density score 0.76 → 0.71). The genre
+  classifier finds it a little less "XMIDI-like" than the dev model (0.85 vs 0.87); that gap is within noise.
+* **Hybrid.** The hybrid engine (rule and neural candidates, ranking chooses) still scores best overall. With either
+  model it picked the rule candidate on 23 of 30 prompts, so the new model changes hybrid output on only the other 7.
+* **What is measured.** These are automatic scores, not listening tests.
 
 ---
 
@@ -83,7 +90,14 @@ python -m midicomposer.cli prepare --xmidi-root XMIDI_Dataset --out data/xmidi_d
 python -m midicomposer.cli train-classifiers --data data/xmidi --out checkpoints/classifiers.pt
 ```
 
-**3. Run a development training job** for the neural track generator:
+**3. Train the neural track generator.** The model the app uses (60/40 split, about 1 h on a laptop GPU, then its
+test loss):
+```powershell
+python scripts/resplit_manifest.py --src data/xmidi --out data/xmidi_60_40 --train 0.57 --val 0.03
+python -m midicomposer.cli train --config configs/train_60_40.yaml
+python scripts/eval_test_loss.py --checkpoint checkpoints/composer_60_40.pt checkpoints/composer_dev.pt
+```
+Or a development run (minutes):
 ```powershell
 python -m midicomposer.cli train --config configs/dev_train.yaml
 # quicker smoke run:
@@ -122,7 +136,7 @@ Without a session (as here), uploads and jobs are kept for 10 minutes after thei
 
 **7. Tests:**
 ```powershell
-python -m pytest                              # 153 tests, ~6 s, uses tests/fixtures only (no XMIDI needed)
+python -m pytest                              # 173 tests, ~10 s, uses tests/fixtures only (no XMIDI needed)
 node --test web/tests/ui-state.test.mjs       # UI button-state and error-handling logic
 ```
 
@@ -144,7 +158,8 @@ then in Render choose **New > Blueprint** and pick it. What it sets up:
   paid instance that never sleeps and runs neural requests faster.
 * **One instance only:** sessions live in the server's memory, so don't scale it out. A restart or sleep ends open
   sessions, and the page tells its user.
-* **Models:** `checkpoints/classifiers.pt` and `checkpoints/composer_dev.pt` are committed (the rest of
+* **Models:** `checkpoints/classifiers.pt` and `checkpoints/composer_60_40.pt` (the neural model the app loads) are
+  committed, plus `checkpoints/composer_dev.pt` for comparison (the rest of
   `checkpoints/` stays ignored). Without them the service still runs, using only the rule-based engine and heuristic
   genre/emotion scores.
 * **Dataset endpoint:** `POST /prepare-dataset` stays off. It is the only endpoint that reads server folders and
@@ -360,8 +375,9 @@ chords, programs, registers, energy curve), and per candidate: rank, **random se
 
 ## Limitations
 
-* The neural model is development-scale (see status). Its harmonic compatibility is clearly below the rule engine's;
-  use `rule` or `hybrid` for best results until a full training run is done.
+* The neural model (6.8M parameters, trained on 57% of XMIDI) still fits the chords less well than the rule engine
+  (harmonic compatibility 0.77 vs 0.87–0.90, see status) and is slow on a small CPU. Use `rule` or `hybrid` for the
+  most consistent results. A bigger model (`configs/full_train.yaml`) has not been trained.
 * Genre/emotion classifiers are modest (≈50% accuracy over 6 genres / 11 emotions) and learn XMIDI's statistics; XMIDI
   genres share almost the same instrumentation, so genre cues are mostly rhythmic/harmonic.
 * Mode labels beyond major/minor (dorian, mixolydian, lydian, phrygian) come from a characteristic-degree heuristic.

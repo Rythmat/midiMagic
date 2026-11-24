@@ -64,6 +64,61 @@ def test_loss_mask_covers_only_target_body(vocab):
     assert vocab["<FILL>"] in infill.ids and vocab["<FILL_START>"] in infill.ids
 
 
+def test_packed_bars_match_list_of_arrays(vocab):
+    import pickle
+
+    import numpy as np
+
+    from midicomposer.model.tokenizer import PackedBars
+
+    rng = random.Random(1)
+    raw = [encode_bar([(b * 4.0 + i, 1.0, rng.randint(-5, 7), 80) for i in range(rng.randint(0, 5))], False,
+                      b * 4.0, 4.0, vocab) for b in range(9)]
+    as_list = [np.asarray(x, dtype=np.int16) for x in raw]
+    packed = PackedBars(raw)
+    assert len(packed) == len(as_list)
+    for i in list(range(len(as_list))) + [-1, -9]:
+        assert packed[i].dtype == np.int16 and np.array_equal(packed[i], as_list[i])
+    for a, b in [(0, 9), (2, 5), (4, 4), (7, 20), (-3, None)]:
+        assert all(np.array_equal(x, y) for x, y in zip(packed[a:b], as_list[a:b]))
+        assert len(packed[a:b]) == len(as_list[a:b])
+        assert (TrackTokens("lead", 0, False, packed).n_notes(a, b or len(as_list))
+                == TrackTokens("lead", 0, False, as_list).n_notes(a, b or len(as_list)))
+    with pytest.raises(IndexError):
+        packed[9]
+    back = pickle.loads(pickle.dumps(packed))
+    assert all(np.array_equal(x, y) for x, y in zip(back, as_list))
+    empty = PackedBars([])
+    assert len(empty) == 0 and empty[0:3] == []
+
+
+def test_packed_bars_build_identical_examples(vocab):
+    import numpy as np
+
+    from midicomposer.model.data import make_example
+    from midicomposer.model.tokenizer import PackedBars
+
+    rng = random.Random(2)
+
+    def track(role, prog, drum):
+        return [encode_bar([(b * 4.0 + i * 0.5, 0.5, 36 if drum else rng.randint(-7, 12), 90) for i in range(rng.randint(0, 6))],
+                           drum, b * 4.0, 4.0, vocab) for b in range(12)]
+
+    raw = [("lead", 73, False, track("lead", 73, False)), ("bass", 33, False, track("bass", 33, False)),
+           ("drums", 0, True, track("drums", 0, True))]
+    rec = {"genre": "pop", "emotion": "happy", "root": "D", "mode": "major", "tempo_tok": "TEMPO=3",
+           "meter_tok": "METER=4/4", "density": 2, "form_tok": "FORM=AB", "sections": ["A"] * 12, "n_bars": 12}
+    a = dict(rec, tracks=[TrackTokens(r, p, d, [np.asarray(x, dtype=np.int16) for x in bars]) for r, p, d, bars in raw])
+    b = dict(rec, tracks=[TrackTokens(r, p, d, PackedBars(bars)) for r, p, d, bars in raw])
+    builder = ExampleBuilder(vocab, 16)
+    for seed in range(40):
+        ea = make_example(a, random.Random(seed), builder, vocab, 8, 512)
+        eb = make_example(b, random.Random(seed), builder, vocab, 8, 512)
+        assert (ea is None) == (eb is None)
+        if ea is not None:
+            assert (ea.ids, ea.bar_ids, ea.seg_ids, ea.loss) == (eb.ids, eb.bar_ids, eb.seg_ids, eb.loss)
+
+
 def _model(vocab):
     torch.manual_seed(0)
     return HierarchicalComposer(ModelConfig(vocab_size=len(vocab), d_model=32, n_layers=2, n_heads=4, d_ff=64,

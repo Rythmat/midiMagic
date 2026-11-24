@@ -7,8 +7,10 @@ data/
 # small fixed test inputs for the evaluation and user study
 !evaluation/data/
 checkpoints/*.pt
-# the two models the deployed app loads; other checkpoints stay local
+# the models the deployed app loads (classifiers + composer_60_40), plus composer_dev for comparison;
+# other checkpoints stay local
 !checkpoints/classifiers.pt
+!checkpoints/composer_60_40.pt
 !checkpoints/composer_dev.pt
 !checkpoints/README.md
 node_modules/

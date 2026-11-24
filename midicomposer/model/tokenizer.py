@@ -87,14 +87,59 @@ def decode_events(ids: list[int], vocab: Vocab, bar_starts: list[float], is_drum
     return out
 
 
+class PackedBars:
+    """Read-only, list-like per-bar token arrays stored in one int16 buffer plus offsets.
+
+    Holding thousands of tiny per-bar arrays costs ~10x their data in object overhead; the training
+    token cache uses this instead so the whole XMIDI train split fits in memory. Indexing returns
+    the same int16 arrays (as views), slicing returns a list of them.
+    """
+    __slots__ = ("data", "offsets")
+
+    def __init__(self, bars):
+        lens = [len(b) for b in bars]
+        self.offsets = np.zeros(len(lens) + 1, dtype=np.int64)
+        self.offsets[1:] = np.cumsum(lens)
+        self.data = (np.concatenate([np.asarray(b, dtype=np.int16) for b in bars]) if lens
+                     else np.zeros(0, dtype=np.int16))
+
+    def __len__(self) -> int:
+        return len(self.offsets) - 1
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return [self[j] for j in range(*i.indices(len(self)))]
+        if i < 0:
+            i += len(self)
+        if not 0 <= i < len(self):
+            raise IndexError(i)
+        return self.data[self.offsets[i]:self.offsets[i + 1]]
+
+    def __iter__(self):
+        return (self[i] for i in range(len(self)))
+
+    def span(self, a: int, b: int) -> int:
+        """Total tokens in bars a..b-1 (clamped like a list slice)."""
+        a, b, _ = slice(a, b).indices(len(self))
+        return int(self.offsets[max(a, b)] - self.offsets[a])
+
+    def __getstate__(self):
+        return self.data, self.offsets
+
+    def __setstate__(self, state):
+        self.data, self.offsets = state
+
+
 @dataclass
 class TrackTokens:
     role: str
     program: int
     is_drum: bool
-    bars: list[np.ndarray]          # per-bar event token ids (no <BAR> token)
+    bars: list[np.ndarray] | PackedBars   # per-bar event token ids (no <BAR> token)
 
     def n_notes(self, a: int, b: int) -> int:
+        if isinstance(self.bars, PackedBars):
+            return self.bars.span(a, b)
         return int(sum(len(x) for x in self.bars[a:b]))
 
 
