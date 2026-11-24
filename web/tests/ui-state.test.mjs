@@ -72,7 +72,7 @@ test("undetected root requires a manual override", () => {
 test("no roles or invalid fields block generation with reasons", () => {
   let s = ready();
   for (const r of [...s.form.generatedRoles]) s = reduce(s, { type: "toggleRole", role: r });
-  assert.ok(generateBlockers(s).some((m) => m.includes("at least one role")));
+  assert.ok(generateBlockers(s).some((m) => m.includes("at least one part")));
   s = reduce(s, { type: "toggleRole", role: "pad" });
   s = reduce(s, { type: "setField", field: "tempo", value: "999" });
   assert.equal(canGenerate(s), false);
@@ -200,7 +200,7 @@ test("build on this turns a result into a locked MIDI input and asks for new rol
   assert.equal(s.mode, "midi");
   assert.equal(s.form.inputRole, "full_mix");
   assert.deepEqual(s.buildingFrom, { jobId: "j1", candidate: 0 });
-  assert.ok(generateBlockers(s).some((m) => m.includes("at least one role")));
+  assert.ok(generateBlockers(s).some((m) => m.includes("at least one part")));
   s = reduce(s, { type: "toggleRole", role: "pad" });
   assert.equal(canGenerate(s), true);
   const b = buildGenerateBody(s);
