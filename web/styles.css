@@ -71,14 +71,38 @@ h2 { font-size: 18px; margin: 2px 0 12px; } h3 { font-size: 13px; margin: 16px 0
 .tab .ic { flex: none; }
 
 /* ---------- prompt steps */
-.step-label { margin: 0 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); }
+.step-label { margin: 0 0 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
 .big-label { font-size: 15px; color: var(--text); font-weight: 600; margin-bottom: 6px; }
 .quote { margin: 0 0 10px; padding: 10px 14px; border-left: 3px solid var(--accent); border-radius: 0; background: var(--bg2); color: var(--text); font-size: 15px; }
 .lead-in { margin: 6px 0 4px; color: var(--text); }
 .foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .foot .variations { flex: 0 0 120px; margin: 0; }
 #shared-controls > .row:first-child { margin-top: 16px; }
-#edit-prompt { margin-right: auto; }
+/* Prompt step 2: the prompt with the understood words coloured, then one chip per setting. */
+.step2-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 6px; }
+.step2-head .step-label { margin: 0; }
+.heard-prompt { font-size: 19px; line-height: 1.8; margin: 4px 0 14px; color: var(--text); overflow-wrap: anywhere; }
+.hl { color: inherit; padding: 1px 4px; border-radius: 5px; background: var(--hl-bg); box-shadow: inset 0 -2px 0 var(--hl); }
+.hl.genre, .heard.genre { --hl: #a58fff; --hl-bg: rgba(139, 108, 255, .22); }
+.hl.mood, .heard.mood { --hl: #ff7fb0; --hl-bg: rgba(255, 92, 154, .2); }
+.hl.key, .heard.key { --hl: #4ff0d2; --hl-bg: rgba(46, 230, 198, .16); }
+.hl.tempo, .heard.tempo, .hl.length, .heard.length { --hl: #ffd27a; --hl-bg: rgba(255, 207, 107, .17); }
+.hl.instruments, .heard.instruments { --hl: #7cc6ff; --hl-bg: rgba(90, 184, 255, .18); }
+.hl.form, .heard.form { --hl: #c9c4e6; --hl-bg: rgba(201, 196, 230, .14); }
+.heard-chips { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
+.heard-chips > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.heard-chips > div:empty { display: none; }
+.heard { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; font: 500 14px "Inter", sans-serif;
+  color: var(--text); background: var(--hl-bg); border: 1px solid var(--hl); }
+.heard i { width: 8px; height: 8px; border-radius: 50%; background: var(--hl); }
+.heard small { color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.heard small:first-of-type { color: var(--text); opacity: .75; }
+button.heard:hover { filter: brightness(1.15); }
+span.heard { cursor: help; }
+.heard.auto { background: transparent; border-style: dashed; border-color: var(--border); color: var(--muted); }
+.heard.auto i { background: transparent; border: 1.5px solid var(--hl); }
+.flash { animation: flash 1.2s ease-out; border-radius: 12px; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .foot #generate, .foot #interpret { width: auto; min-width: 220px; margin: 0; }
 
 /* ---------- button groups (genre, emotion, key, form, file role, output key) */

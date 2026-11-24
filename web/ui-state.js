@@ -263,6 +263,8 @@ export function reduce(s, action) {
       n.interpreting = true; n.interpretError = null; return n;
     case "interpretSuccess":
       n.interpreting = false; n.interpretation = action.plan; n.interpretedPrompt = action.prompt.trim();
+      // A new prompt starts fresh for what it doesn't mention (genre, emotion and key always need a value, so they stay).
+      Object.assign(n.form, { tempo: "", bars: "", instrumentation: "", scaleMode: "", form: "auto" });
       n.form = applySettings(n.form, action.plan.settings, s.options);
       n.form.generatedRoles = normalizeRoles(n.form.generatedRoles);   // the picker allows one part per group
       n.promptStep = 2;

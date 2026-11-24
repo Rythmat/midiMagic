@@ -325,3 +325,21 @@ test("major/minor from a prompt is not sent from the Settings or MIDI tabs", () 
   s = reduce(s, { type: "setMode", mode: "midi" });
   assert.equal(buildGenerateBody(s).scale_mode, null);
 });
+
+import { promptHighlights, promptSegments } from "../choices.js";
+
+test("prompt highlighting finds the words behind each setting", () => {
+  const p = "A sad slow jazz piece with piano in D minor, 16 bars at 80 bpm";
+  const h = promptHighlights(p, { genre: "jazz", emotion: "sad", key: "D", scale_mode: "minor", tempo: 80, bars: 16,
+    instrumentation: "piano" }, ["genre 'jazz' from \"jazz\""]);
+  assert.deepEqual(h.map((x) => [p.slice(x.start, x.end), x.cat]),
+    [["sad", "mood"], ["jazz", "genre"], ["piano", "instruments"], ["D minor", "key"], ["16 bars", "length"], ["80 bpm", "tempo"]]);
+  assert.equal(promptSegments(p, h).map((s) => s.text).join(""), p);
+});
+
+test("prompt highlighting: genre from its source word; a lone article is not a key", () => {
+  const p = "A cheerful bouncy bluegrass hoedown in A, 140bpm";
+  const h = promptHighlights(p, { genre: "country", key: "A", tempo: 140 }, ["genre 'country' from \"bluegrass\""]);
+  assert.deepEqual(h.map((x) => [p.slice(x.start, x.end), x.cat]), [["bluegrass", "genre"], ["A", "key"], ["140bpm", "tempo"]]);
+  assert.equal(h.find((x) => x.cat === "key").start, p.indexOf("in A") + 3);
+});

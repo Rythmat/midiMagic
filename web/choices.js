@@ -77,3 +77,48 @@ export const FORM_TIPS = {
   "head-solo-head": "Jazz form: play the tune (the head), solos over its chords, then the tune again.",
   "build-drop": "Dance-music form: the energy builds up, then the full beat drops in.",
 };
+
+// ------------------------------------------------------------------ prompt highlighting
+// Finds the words in a prompt that the planner turned into settings, so the UI can colour them.
+// Best effort: mood words are only found when the prompt uses the emotion's own name ("sad", "sadness").
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function promptHighlights(prompt, settings = {}, explanation = []) {
+  const found = [];
+  const add = (re, cat, keep = () => true) => {
+    for (const m of prompt.matchAll(re)) if (m[0].trim() && keep(m)) found.push({ start: m.index, end: m.index + m[0].length, cat });
+  };
+  if (settings.genre) {
+    const src = explanation.map((e) => /^genre .* from "(.+?)"/.exec(e)).find(Boolean);
+    add(new RegExp(`\\b${esc(src ? src[1] : settings.genre)}\\b`, "gi"), "genre");
+  }
+  if (settings.emotion) add(new RegExp(`\\b${esc(settings.emotion)}\\w*`, "gi"), "mood");
+  if (settings.key) {
+    // A key letter counts only with an accidental or a mode after it, or after "in" / "key of" (so "A sad…" is not a key).
+    const re = new RegExp(`\\b${esc(settings.key[0])}(?:#|♯|♭|b(?![a-z])|[\\s-]?(?:[Ss]harp|[Ff]lat))?(?:\\s+(?:[Mm]ajor|[Mm]inor))?(?![\\w#])`, "g");
+    add(re, "key", (m) => m[0].length > 1 || /\b(in|key of)\s+$/i.test(prompt.slice(0, m.index)));
+  }
+  if (settings.tempo) add(/\b\d{2,3}\s*(?:bpm|beats per minute)\b/gi, "tempo");
+  if (settings.bars) add(/\b\d+\s*(?:bars?|measures?)\b/gi, "length");
+  if (settings.form) add(new RegExp(`\\b${esc(settings.form)}\\b`, "gi"), "form");
+  for (const inst of String(settings.instrumentation || "").split(/\s*,\s*/).filter(Boolean)) {
+    add(new RegExp(`\\b${esc(inst)}\\w*`, "gi"), "instruments");
+  }
+  found.sort((a, b) => a.start - b.start || b.end - a.end);
+  const out = [];
+  for (const h of found) if (!out.length || h.start >= out[out.length - 1].end) out.push(h);
+  return out;
+}
+
+// The prompt split into plain and highlighted pieces, in order.
+export function promptSegments(prompt, highlights) {
+  const segs = [];
+  let at = 0;
+  for (const h of highlights) {
+    if (h.start > at) segs.push({ text: prompt.slice(at, h.start), cat: null });
+    segs.push({ text: prompt.slice(h.start, h.end), cat: h.cat });
+    at = h.end;
+  }
+  if (at < prompt.length) segs.push({ text: prompt.slice(at), cat: null });
+  return segs;
+}

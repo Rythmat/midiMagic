@@ -4,7 +4,7 @@ import {
   canInterpret, canRegenerateSection, canRegenerateTrack, critiqueKey, currentCandidate, generateBlockers,
   initialState, interpretBlockers, reduce, regenerateSectionBlockers, regenerateTrackBlockers,
 } from "./ui-state.js";
-import { FORM_TIPS, INPUT_ROLE_LABELS, PART_GROUPS } from "./choices.js";
+import { FORM_TIPS, INPUT_ROLE_LABELS, PART_GROUPS, promptHighlights, promptSegments } from "./choices.js";
 import { drawRoll, trackColor } from "./pianoroll.js";
 import { play, stopPlayback } from "./audio.js";
 
@@ -531,15 +531,44 @@ function renderPrompt() {
   const p = state.interpretation;
   const box = $("interpretation");
   box.hidden = !p;
-  $("prompt-quote").textContent = state.interpretedPrompt ? `“${state.interpretedPrompt}”` : "";
-  if (!p) return;
-  const stale = state.prompt.trim() !== state.interpretedPrompt;
-  const heard = p.explanation.length ? p.explanation.map((e) => `<li>${escapeHtml(e)}</li>`).join("")
-    : "<li>No musical keywords recognised.</li>";
-  const missing = p.unmatched.length
-    ? `<p class="muted">No ${p.unmatched.join(" or ")} found in the prompt, so the current ${p.unmatched.join("/")} setting is kept.</p>` : "";
-  box.innerHTML = `<b>${stale ? "Found in your previous prompt" : "Found in your prompt"}</b>
-    <span class="muted">(${escapeHtml(p.source)})</span><ul>${heard}</ul>${missing}`;
+  if (!p) { $("prompt-quote").textContent = ""; return; }
+  // The prompt, with the words that became settings coloured by setting.
+  const text = state.interpretedPrompt || "";
+  const segs = promptSegments(text, promptHighlights(text, p.settings, p.explanation));
+  $("prompt-quote").innerHTML = `“${segs.map((s) => (s.cat ? `<mark class="hl ${s.cat}">${escapeHtml(s.text)}</mark>`
+    : escapeHtml(s.text))).join("")}”`;
+  // One chip per setting; solid = found in the prompt, dashed = kept from before or left to the app.
+  const S = p.settings, f = state.form;
+  const cap = (v) => String(v).charAt(0).toUpperCase() + String(v).slice(1);
+  const chips = [
+    ["genre", "Genre", f.genre && cap(f.genre), S.genre, "genre-choices"],
+    ["mood", "Mood", f.emotion && cap(f.emotion), S.emotion, "emotion-choices"],
+    ["key", "Key", f.key && `${f.key}${f.scaleMode ? ` ${f.scaleMode}` : ""}`, S.key, "key-choices"],
+    ["tempo", "Tempo", f.tempo && `${f.tempo} BPM`, S.tempo, "tempo"],
+    ["length", "Length", f.bars && `${f.bars} bars`, S.bars, "bars"],
+    ["instruments", "Instruments", f.instrumentation && cap(f.instrumentation), S.instrumentation, null],
+    ["form", "Form", f.form && f.form !== "auto" ? f.form : null, S.form, "form-choices"],
+  ];
+  const chip = ([cat, label, value, found, target]) => {
+    const shown = value || "App will choose";
+    const note = found ? "" : (value ? " · not in your prompt" : "");
+    const tag = target ? "button" : "span";
+    return `<${tag} class="heard ${cat} ${found ? "" : "auto"}" ${target ? `type="button" data-target="${target}"` : ""}
+      ${target ? "" : `title="Change the instruments by editing your prompt."`}>
+      <i aria-hidden="true"></i><small>${label}</small> ${escapeHtml(shown)}<small>${note}</small></${tag}>`;
+  };
+  box.innerHTML = `<div>${chips.filter((c) => c[3] != null).map(chip).join("")}</div>`
+    + `<div>${chips.filter((c) => c[3] == null).map(chip).join("")}</div>`;
+  box.querySelectorAll("button[data-target]").forEach((b) => { b.onclick = () => jumpTo(b.dataset.target); });
+}
+
+// Scroll to a control and flash it, so a chip leads straight to the setting it names.
+function jumpTo(id) {
+  const el = $(id);
+  const target = el.closest(".group") || el.closest(".field") || el;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.classList.remove("flash"); void target.offsetWidth; target.classList.add("flash");
+  if (el.tagName === "INPUT") setTimeout(() => el.focus({ preventScroll: true }), 350);
 }
 
 function renderCritic() {

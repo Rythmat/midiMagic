@@ -61,10 +61,14 @@
         </div>
       </div>
       <div id="prompt-step2" hidden>
-        <p class="step-label">Step 2 of 2 · settings found in your prompt</p>
-        <blockquote id="prompt-quote" class="quote"></blockquote>
-        <div id="interpretation" class="notice" hidden></div>
-        <p class="lead-in">Do these look right? Tap any button to change it.</p>
+        <div class="step2-head">
+          <p class="step-label">Step 2 of 2</p>
+          <button id="edit-prompt" class="secondary" type="button">✎ Edit prompt</button>
+        </div>
+        <p id="prompt-quote" class="heard-prompt"></p>
+        <p class="hint">Here's what we heard. Click a chip to change it.</p>
+        <div id="interpretation" class="heard-chips" hidden></div>
+        <p class="hint">All looks right? Pick the parts below, then press Accept and generate.</p>
       </div>
     </div>
 
@@ -112,7 +116,6 @@
       </div>
 
       <div class="foot">
-        <button id="edit-prompt" class="secondary" hidden>← Edit prompt</button>
         <label class="field variations">Variations
           <select id="variations">
             <option>1</option><option>2</option><option selected>3</option><option>4</option>
