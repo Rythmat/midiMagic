@@ -29,132 +29,132 @@
   <span id="server-status" class="pill">connecting…</span>
 </header>
 
-<main class="layout">
-  <!-- ============================== controls -->
+<main class="page">
+  <!-- ============================== start-from tabs -->
+  <nav class="tabs" role="tablist" aria-label="Start from">
+    <button role="tab" id="tab-prompt" class="tab" data-mode="prompt">
+      <span class="ic c1" aria-hidden="true">✎</span>
+      <span><b>Prompt</b><small>Describe the music in words</small></span></button>
+    <button role="tab" id="tab-midi" class="tab active" data-mode="midi">
+      <span class="ic c2" aria-hidden="true">♫</span>
+      <span><b>MIDI</b><small>Build new parts around your melody</small></span></button>
+    <button role="tab" id="tab-metadata" class="tab" data-mode="metadata">
+      <span class="ic c3" aria-hidden="true">☰</span>
+      <span><b>Settings</b><small>Pick genre, mood, key and form</small></span></button>
+  </nav>
+
+  <!-- ============================== the active tab's panel -->
   <section class="panel controls" aria-label="Generation settings">
-    <p class="step"><span>1</span> Start from</p>
-    <div class="tabs" role="tablist">
-      <button role="tab" id="tab-prompt" class="tab" data-mode="prompt">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        Prompt</button>
-      <button role="tab" id="tab-midi" class="tab active" data-mode="midi">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        MIDI</button>
-      <button role="tab" id="tab-metadata" class="tab" data-mode="metadata">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="5" cy="14" r="2.4" fill="currentColor"/><circle cx="12" cy="8" r="2.4" fill="currentColor"/><circle cx="19" cy="16" r="2.4" fill="currentColor"/></svg>
-        Settings</button>
-    </div>
+    <div id="session-notice" class="warning" hidden></div>
 
+    <!-- Prompt, step 1: just the text -->
     <div id="prompt-controls" hidden>
-      <label class="field">Describe the music
+      <div id="prompt-step1">
+        <p class="step-label">Step 1 of 2</p>
+        <label class="field big-label" for="prompt">Describe the music</label>
         <textarea id="prompt" rows="4" maxlength="2000"
-          placeholder="e.g. A sad, slow piano and cello piece in D minor, 16 bars"></textarea>
-      </label>
-      <button id="interpret" class="secondary wide" disabled>Interpret prompt</button>
-      <p id="interpret-hint" class="hint"></p>
-      <div id="interpretation" class="notice" hidden></div>
+          placeholder="A sad, slow piano and cello piece in D minor, 16 bars"></textarea>
+        <p id="interpret-hint" class="hint"></p>
+        <div class="foot">
+          <span class="hint inline">Mood, style, tempo, key, length and instruments are all understood.</span>
+          <button id="interpret" class="primary" disabled>Next →</button>
+        </div>
+      </div>
+      <div id="prompt-step2" hidden>
+        <p class="step-label">Step 2 of 2 · settings found in your prompt</p>
+        <blockquote id="prompt-quote" class="quote"></blockquote>
+        <div id="interpretation" class="notice" hidden></div>
+        <p class="lead-in">Do these look right? Tap any button to change it.</p>
+      </div>
     </div>
 
+    <!-- MIDI tab -->
     <div id="midi-controls">
       <label class="field dropzone">
         <span class="drop-title">Drop a MIDI file or click to choose</span>
-        <span class="drop-sub">.mid or .midi · analyzed automatically</span>
+        <span id="drop-sub" class="drop-sub">.mid or .midi · it is analyzed as soon as you choose it</span>
         <input type="file" id="file" accept=".mid,.midi,audio/midi">
       </label>
-      <div class="row">
-        <label class="field">Input role
-          <select id="inputRole"></select>
-        </label>
-        <label class="field">Manual root
-          <select id="rootOverride"><option value="">auto-detect</option></select>
-        </label>
-      </div>
       <div id="building-from" class="notice" hidden></div>
-      <button id="analyze" class="secondary wide" disabled>Analyze MIDI</button>
+      <div class="group">
+        <p class="group-label">Your file is the</p>
+        <div id="inputRole-choices" class="choices"></div>
+      </div>
+      <div class="group">
+        <p class="group-label">Output key</p>
+        <div id="targetKey-choices" class="choices"></div>
+      </div>
+      <!-- Shown only when the key of the file could not be found or is unclear. -->
+      <label id="root-field" class="field" hidden>The key of your file couldn't be found reliably. Choose it here:
+        <select id="rootOverride"><option value="">auto-detect</option></select>
+      </label>
       <p id="analyze-hint" class="hint"></p>
-      <label class="field">Target key (transpose output)
-        <select id="targetKey"><option value="">same as input</option></select>
-      </label>
     </div>
 
+    <!-- Genre, emotion, key, form: Settings tab and prompt step 2 -->
     <div id="metadata-controls" hidden>
-      <div class="row">
-        <label class="field">Genre <select id="genre"></select></label>
-        <label class="field">Emotion <select id="emotion"></select></label>
-      </div>
-      <div class="row">
-        <label class="field">Key / root <select id="key"></select></label>
-        <label class="field">Form <select id="form"></select></label>
-      </div>
+      <div class="group"><p class="group-label">Genre</p><div id="genre-choices" class="choices"></div></div>
+      <div class="group"><p class="group-label">Emotion</p><div id="emotion-choices" class="choices"></div></div>
+      <div class="group"><p class="group-label">Key</p><div id="key-choices" class="choices keys"></div></div>
+      <div class="group"><p class="group-label">Form <span class="muted small">· hover for what each means</span></p><div id="form-choices" class="choices"></div></div>
     </div>
 
-    <p class="step"><span>2</span> Parts to write</p>
-    <fieldset class="field">
-      <legend class="sr-only">Generate roles</legend>
-      <div id="roles" class="chips"></div>
-    </fieldset>
-
-    <p class="step"><span>3</span> Shape the sound</p>
-    <div class="row">
-      <label class="field">Tempo (BPM) <input id="tempo" type="number" min="20" max="300" placeholder="auto"></label>
-      <label class="field">Length (bars) <input id="bars" type="number" min="1" max="256" placeholder="auto"></label>
-    </div>
-    <div class="row">
-      <label class="field">Mode
-        <select id="scaleMode"><option value="">auto</option></select>
-      </label>
-      <label class="field">Meter <input id="meter" value="4/4" size="5"></label>
-    </div>
-    <label class="field">
-      <span class="slider-label">Density / complexity <span id="density-val" class="value">0.50</span></span>
-      <input id="density" type="range" min="0" max="1" step="0.05" value="0.5">
-    </label>
-    <label class="field">Instrumentation
-      <input id="instrumentation" list="presets" placeholder="e.g. piano, bass, drums, strings">
-      <datalist id="presets"></datalist>
-    </label>
-    <details class="advanced">
-      <summary>Advanced</summary>
+    <!-- Shared by every tab once there is something to generate -->
+    <div id="shared-controls">
       <div class="row">
-        <label class="field">Variations <input id="variations" type="number" min="1" max="8" value="3"></label>
-        <label class="field">Seed <input id="seed" type="number" value="0"></label>
-        <label class="field">Engine <select id="engine"></select></label>
+        <label class="field">Tempo (BPM) <input id="tempo" type="number" min="20" max="300" placeholder="auto"></label>
+        <label class="field">Length (bars) <input id="bars" type="number" min="1" max="256" placeholder="auto"></label>
       </div>
-    </details>
 
-    <button id="generate" class="primary" disabled>Generate</button>
-    <ul id="generate-hint" class="hint-list"></ul>
+      <div class="group">
+        <p class="group-label">Parts to write <span class="muted small">· pick one in each box, or Skip</span></p>
+        <div id="roles" class="pgrid"></div>
+      </div>
+
+      <div class="foot">
+        <button id="edit-prompt" class="secondary" hidden>← Edit prompt</button>
+        <label class="field variations">Variations
+          <select id="variations">
+            <option>1</option><option>2</option><option selected>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </label>
+        <button id="generate" class="primary" disabled>Generate</button>
+      </div>
+      <ul id="generate-hint" class="hint-list"></ul>
+    </div>
+
+    <!-- Kept for the state logic; these settings now use their defaults and are not shown. -->
+    <div hidden>
+      <select id="inputRole"></select><select id="targetKey"><option value="">same as input</option></select>
+      <select id="genre"></select><select id="emotion"></select><select id="key"></select><select id="form"></select>
+      <select id="scaleMode"><option value="">auto</option></select><input id="meter" value="4/4">
+      <input id="density" type="range" min="0" max="1" step="0.05" value="0.5"><span id="density-val"></span>
+      <input id="instrumentation" list="presets"><datalist id="presets"></datalist>
+      <input id="seed" type="number" value="0"><select id="engine"></select>
+      <button id="analyze" type="button">Analyze MIDI</button>
+    </div>
   </section>
 
   <!-- ============================== analysis + results -->
-  <section class="panel output" aria-label="Analysis and results">
-    <div id="session-notice" class="warning" hidden></div>
+  <section class="output" aria-label="Analysis and results">
     <div id="empty-state" class="empty">
-      <h2>Make music you can keep editing</h2>
-      <p class="lead">Pick a starting point on the left. You get separate MIDI stems for every part, ready for any DAW.</p>
-      <div class="start-cards">
-        <div class="start-card"><span class="ic c1">✎</span><h3>Describe it</h3>
-          <p>Type a mood, style or tempo. <b>Interpret</b> turns your words into settings.</p></div>
-        <div class="start-card"><span class="ic c2">♫</span><h3>Bring a melody</h3>
-          <p>Upload a MIDI part. Its key, tempo and mood are read, then new parts are written around it.</p></div>
-        <div class="start-card"><span class="ic c3">☰</span><h3>Dial it in</h3>
-          <p>Choose genre, emotion, key, tempo and length yourself.</p></div>
-      </div>
-      <div class="flow">
-        <span>Generate</span><i>→</i><span>Listen</span><i>→</i><span>Follow the critic</span><i>→</i><span>Build on this</span><i>→</i><span>Download stems</span>
-      </div>
-      <p class="muted small">Nothing is stored: uploads and results exist only while this page is open, and closing or
-        refreshing it discards them.</p>
+      <span class="ic c2" aria-hidden="true">♪</span>
+      <p>Your music appears here: listen, see the notes, follow the critic, build on it and download the stems.
+        <span class="muted">Nothing is stored. Closing or refreshing the page discards it.</span></p>
     </div>
     <div id="analysis-box" class="card" hidden>
-      <h2>Input analysis</h2>
+      <h2>Your file</h2>
       <div id="analysis-error" class="error" hidden></div>
       <dl class="facts" id="analysis-facts"></dl>
       <div id="root-warning" class="warning" hidden></div>
-      <table class="tracks" id="analysis-tracks">
-        <thead><tr><th>#</th><th>Track</th><th>Instrument</th><th>Notes</th><th>Detected</th><th>Role</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <details class="advanced">
+        <summary>Tracks in your file</summary>
+        <table class="tracks" id="analysis-tracks">
+          <thead><tr><th>#</th><th>Track</th><th>Instrument</th><th>Notes</th><th>Detected</th><th>Role</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </details>
     </div>
 
     <div id="job-box" class="card" hidden>

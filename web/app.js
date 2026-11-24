@@ -4,6 +4,7 @@ import {
   canInterpret, canRegenerateSection, canRegenerateTrack, critiqueKey, currentCandidate, generateBlockers,
   initialState, interpretBlockers, reduce, regenerateSectionBlockers, regenerateTrackBlockers,
 } from "./ui-state.js";
+import { FORM_TIPS, INPUT_ROLE_LABELS, PART_GROUPS } from "./choices.js";
 import { drawRoll, trackColor } from "./pianoroll.js";
 import { play, stopPlayback } from "./audio.js";
 
@@ -124,16 +125,13 @@ async function loadOptions() {
     });
     [...$("engine").options].forEach((opt) => { opt.disabled = !o.engines[opt.value]; });
     $("presets").innerHTML = o.instrumentation_presets.map((p) => `<option value="${p}">`).join("");
-    const roles = $("roles");
-    roles.innerHTML = "";
-    for (const r of o.generated_roles) {
-      const c = document.createElement("span");
-      c.className = "chip"; c.dataset.role = r; c.textContent = r.replace(/_/g, " ");
-      c.setAttribute("role", "checkbox"); c.tabIndex = 0;
-      c.onclick = () => dispatch({ type: "toggleRole", role: r });
-      c.onkeydown = (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); c.click(); } };
-      roles.appendChild(c);
-    }
+    buildChoices("genre", o.genres);
+    buildChoices("emotion", o.emotions);
+    buildChoices("key", o.keys);
+    buildChoices("form", o.forms, { tips: FORM_TIPS });
+    buildChoices("inputRole", o.input_roles, { labels: INPUT_ROLE_LABELS });
+    buildChoices("targetKey", ["", ...o.keys], { labels: { "": "Same as file" } });
+    buildParts(o.generated_roles);
     $("genre").value = state.form.genre; $("emotion").value = state.form.emotion; $("key").value = state.form.key;
     $("inputRole").value = state.form.inputRole; $("form").value = state.form.form; $("engine").value = state.form.engine;
     setServerStatus(true);
@@ -144,6 +142,58 @@ async function loadOptions() {
     setServerStatus(false);
     dispatch({ type: "optionsFailed", error: e.message });
   }
+}
+
+// Button groups replace the dropdowns: one button per value, the state holds the choice.
+const CHOICE_FIELDS = ["genre", "emotion", "key", "form", "inputRole", "targetKey"];
+
+function buildChoices(field, values, { labels = {}, tips = {} } = {}) {
+  const box = $(`${field}-choices`);
+  box.innerHTML = "";
+  for (const v of values) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "choice"; b.dataset.value = v;
+    const label = labels[v] ?? String(v).replace(/_/g, " ");
+    b.textContent = label;
+    if (tips[v]) { b.dataset.tip = tips[v]; b.setAttribute("aria-label", `${label}: ${tips[v]}`); }
+    b.onclick = () => dispatch({ type: "setField", field, value: v });
+    box.appendChild(b);
+  }
+}
+
+// "Parts to write": one box per group, one choice per box (or Skip).
+function buildParts(available) {
+  const has = new Set(available);
+  const opt = (group, role, name, desc) => `<button type="button" class="opt" data-group="${group}" data-role="${role}">
+      <span class="radio" aria-hidden="true"></span><span><b>${escapeHtml(name)}</b><small>${escapeHtml(desc)}</small></span></button>`;
+  $("roles").innerHTML = PART_GROUPS.map((g) => {
+    const roles = g.roles.filter(([r]) => has.has(r));
+    if (!roles.length) return "";
+    return `<div class="pcard" role="radiogroup" aria-label="${g.name}"><div class="phead"><b>${g.name}</b><small>${g.what}</small></div>
+      ${roles.map(([r, n, d]) => opt(g.id, r, n, d)).join("")}${opt(g.id, "", "Skip", "Leave this part out")}</div>`;
+  }).join("");
+  $("roles").querySelectorAll(".opt").forEach((b) => {
+    b.onclick = () => dispatch({ type: "setGroupRole", group: b.dataset.group, role: b.dataset.role || null });
+  });
+}
+
+function renderChoices() {
+  for (const field of CHOICE_FIELDS) {
+    const cur = String(state.form[field] ?? "");
+    $(`${field}-choices`).querySelectorAll(".choice").forEach((b) => {
+      const on = b.dataset.value === cur;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    });
+  }
+  const chosen = new Set(state.form.generatedRoles);
+  $("roles").querySelectorAll(".pcard").forEach((card) => {
+    const opts = [...card.querySelectorAll(".opt")];
+    const any = opts.some((b) => b.dataset.role && chosen.has(b.dataset.role));
+    for (const b of opts) {
+      const on = b.dataset.role ? chosen.has(b.dataset.role) : !any;
+      b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); b.setAttribute("role", "radio");
+    }
+  });
 }
 
 function bindField(id, field, transform = (v) => v) {
@@ -199,7 +249,14 @@ async function startJob(path, body) {
   }
 }
 
-const generate = () => canGenerate(state) && startJob("/generate", buildGenerateBody(state));
+// The settings panel is tall, so bring the progress and then the result into view.
+async function generate() {
+  if (!canGenerate(state)) return;
+  const done = startJob("/generate", buildGenerateBody(state));
+  $("job-box").scrollIntoView({ behavior: "smooth", block: "center" });
+  await done;
+  if (state.result && !state.jobError) $("result-box").scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function regenTrack() {
   if (!canRegenerateTrack(state)) return;
@@ -227,6 +284,8 @@ async function toggleLock(trackId, locked) {
 async function interpret() {
   if (!canInterpret(state)) return;
   const prompt = state.prompt;
+  // Same prompt as last time: go straight back to step 2 and keep any changes made there.
+  if (state.interpretation && prompt.trim() === state.interpretedPrompt) { dispatch({ type: "setPromptStep", step: 2 }); return; }
   dispatch({ type: "interpretStart" });
   try {
     const plan = await api("/plan-from-text", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -343,13 +402,13 @@ function renderAnalysis() {
   const usedStyle = style && style.emotion && style.emotion.length
     ? `<div class="wide"><dt>Used for generation</dt><dd>emotion: ${escapeHtml(state.form.emotion)}, genre: ${escapeHtml(state.form.genre)}
        <span class="muted">— ${applied ? "from the detected mood" : "your settings (the detected mood was not applied)"}.
-       ${escapeHtml(style.note || "")} Change it under From settings.</span></dd></div>` : "";
+       ${escapeHtml(style.note || "")} To use a different mood, pick it in the Settings tab.</span></dd></div>` : "";
   facts.insertAdjacentHTML("beforeend", usedStyle);
   if (r.root_pitch_class === null) {
-    warn.hidden = false; warn.textContent = "Root could not be determined. Choose a manual root and re-analyze (or just generate with the override).";
+    warn.hidden = false; warn.textContent = "The key of your file couldn't be found. Choose it in the MIDI tab before generating.";
   } else if (r.ambiguous) {
     warn.hidden = false;
-    warn.textContent = `Root is ambiguous — candidates: ${r.top_candidates.slice(0, 4).map((c) => `${c.root_name} ${c.mode}`).join(", ")}. Consider a manual root.`;
+    warn.textContent = `The key is unclear — it could be ${r.top_candidates.slice(0, 4).map((c) => `${c.root_name} ${c.mode}`).join(", ")}. You can choose it in the MIDI tab.`;
   } else { warn.hidden = true; }
   const roleOpts = ["lead", "bass", "chordal", "harmony", "high_texture", "low_texture", "counterline", "pad", "full_mix"];
   $("analysis-tracks").tBodies[0].innerHTML = a.tracks.map((t) => `<tr>
@@ -418,25 +477,32 @@ function render() {
   $("empty-state").hidden = !!(state.result || state.jobStatus || state.jobError || state.analysis || state.analyzing
     || state.analysisError);
   const promptMode = state.mode === "prompt";
+  const promptStep1 = promptMode && state.promptStep !== 2;
   for (const t of document.querySelectorAll(".tab")) {
     t.classList.toggle("active", t.dataset.mode === state.mode);
     t.setAttribute("aria-selected", String(t.dataset.mode === state.mode));
   }
-  $("midi-controls").hidden = !midi;
-  $("metadata-controls").hidden = midi;
+  // Prompt: step 1 is only the text box; step 2 shows what was found as editable buttons.
   $("prompt-controls").hidden = !promptMode;
+  $("prompt-step1").hidden = !promptStep1;
+  $("prompt-step2").hidden = !promptMode || promptStep1;
+  $("midi-controls").hidden = !midi;
+  $("metadata-controls").hidden = midi || promptStep1;
+  $("shared-controls").hidden = promptStep1;
+  $("edit-prompt").hidden = !promptMode;
+  const r = state.analysis && state.analysis.root;
+  $("root-field").hidden = !(midi && ((r && (r.root_pitch_class === null || r.ambiguous)) || state.form.rootOverride));
+  $("drop-sub").textContent = state.file ? `${state.file.name} · choose another file to replace it`
+    : ".mid or .midi · it is analyzed as soon as you choose it";
   renderPrompt();
-  document.querySelectorAll("#roles .chip").forEach((c) => {
-    const on = state.form.generatedRoles.includes(c.dataset.role);
-    c.classList.toggle("on", on); c.setAttribute("aria-checked", String(on));
-  });
+  renderChoices();
   $("density-val").textContent = Number(state.form.density).toFixed(2);
   const ab = analyzeBlockers(state);
   setButton($("analyze"), canAnalyze(state), ab);
   $("analyze-hint").textContent = midi && ab.length && !state.analyzing ? ab[0] : (state.analyzing ? "Analyzing…" : "");
   const gb = generateBlockers(state);
   setButton($("generate"), canGenerate(state), gb);
-  $("generate").textContent = state.generating ? "Generating…" : "Generate";
+  $("generate").textContent = state.generating ? "Generating…" : (promptMode ? "Accept and generate" : "Generate");
   $("generate-hint").innerHTML = gb.map((m) => `<li>${escapeHtml(m)}</li>`).join("");
   const bf = state.buildingFrom;
   $("building-from").hidden = !(midi && bf);
@@ -460,20 +526,20 @@ function render() {
 function renderPrompt() {
   const ib = interpretBlockers(state);
   setButton($("interpret"), canInterpret(state), ib);
-  $("interpret").textContent = state.interpreting ? "Interpreting…" : "Interpret prompt";
-  $("interpret-hint").textContent = state.interpretError ? `Couldn't interpret: ${state.interpretError}` : "";
+  $("interpret").textContent = state.interpreting ? "Reading your prompt…" : "Next →";
+  $("interpret-hint").textContent = state.interpretError ? `Couldn't read the prompt: ${state.interpretError}` : "";
   const p = state.interpretation;
   const box = $("interpretation");
   box.hidden = !p;
+  $("prompt-quote").textContent = state.interpretedPrompt ? `“${state.interpretedPrompt}”` : "";
   if (!p) return;
   const stale = state.prompt.trim() !== state.interpretedPrompt;
   const heard = p.explanation.length ? p.explanation.map((e) => `<li>${escapeHtml(e)}</li>`).join("")
     : "<li>No musical keywords recognised.</li>";
   const missing = p.unmatched.length
     ? `<p class="muted">No ${p.unmatched.join(" or ")} found in the prompt, so the current ${p.unmatched.join("/")} setting is kept.</p>` : "";
-  box.innerHTML = `<b>${stale ? "Interpretation of the previous prompt" : "Interpretation"}</b>
-    <span class="muted">(${escapeHtml(p.source)})</span><ul>${heard}</ul>${missing}
-    <p class="muted">These settings are filled in below. Adjust anything, then press Generate.</p>`;
+  box.innerHTML = `<b>${stale ? "Found in your previous prompt" : "Found in your prompt"}</b>
+    <span class="muted">(${escapeHtml(p.source)})</span><ul>${heard}</ul>${missing}`;
 }
 
 function renderCritic() {
@@ -540,6 +606,7 @@ for (const [id, field] of FIELDS) bindField(id, field);
 $("prompt").addEventListener("input", () => dispatch({ type: "setPrompt", value: $("prompt").value }));
 $("prompt").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) interpret(); });
 $("interpret").onclick = interpret;
+$("edit-prompt").onclick = () => { dispatch({ type: "setPromptStep", step: 1 }); $("prompt").focus(); };
 window.addEventListener("resize", () => renderResult());
 
 // Closing or refreshing the page disposes of everything it uploaded or generated on the server.
@@ -551,8 +618,9 @@ window.addEventListener("pagehide", () => {
 window.addEventListener("pageshow", (e) => { if (e.persisted) location.reload(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") heartbeat(); });
 
-const startMode = new URLSearchParams(location.search).get("mode");
-if (["metadata", "prompt"].includes(startMode)) state = reduce(state, { type: "setMode", mode: startMode });
+// The Prompt tab opens first; `?mode=midi` or `?mode=metadata` opens another tab.
+const startMode = new URLSearchParams(location.search).get("mode") || "prompt";
+if (["metadata", "prompt", "midi"].includes(startMode)) state = reduce(state, { type: "setMode", mode: startMode });
 render();
 heartbeatTimer = setInterval(heartbeat, DEFAULT_HEARTBEAT_MS);
 connect();

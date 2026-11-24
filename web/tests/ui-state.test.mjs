@@ -274,3 +274,54 @@ test("an unreliable emotion reading is shown but does not change the settings", 
   assert.equal(s.form.emotion, "happy");                 // the default stays
   assert.equal(s.analysis.style.emotion[0].label, "sad"); // but the reading is still available to show
 });
+
+// ------------------------------------------------------------------ tab workflow (grouped parts, prompt steps)
+import { normalizeRoles, setGroupRole, partName } from "../choices.js";
+
+test("parts: one role per group, in group order; full composition expands to the core parts", () => {
+  assert.deepEqual(normalizeRoles(["drums", "chord_bed", "pad", "bass_line"]), ["chord_bed", "bass_line", "drums"]);
+  assert.deepEqual(normalizeRoles(["full_composition"]), ["lead_melody", "chord_bed", "bass_line", "drums"]);
+  assert.deepEqual(normalizeRoles([]), []);
+  assert.equal(partName("chord_bed"), "Block chords (chord bed)");
+});
+
+test("parts: choosing in a group replaces that group's part; Skip removes it", () => {
+  let roles = ["chord_bed", "bass_line", "drums"];
+  roles = setGroupRole(roles, "chords", "arpeggio");
+  assert.deepEqual(roles, ["arpeggio", "bass_line", "drums"]);
+  roles = setGroupRole(roles, "drums", null);
+  assert.deepEqual(roles, ["arpeggio", "bass_line"]);
+  roles = setGroupRole(roles, "melody", "lead_melody");
+  assert.deepEqual(roles, ["lead_melody", "arpeggio", "bass_line"]);
+  assert.deepEqual(setGroupRole(roles, "bass", "drums"), ["lead_melody", "arpeggio"]);   // a role from another group is ignored
+});
+
+test("setGroupRole action updates the form", () => {
+  const s = reduce(initialState(), { type: "setGroupRole", group: "bass", role: "walking_bass" });
+  assert.deepEqual(s.form.generatedRoles, ["chord_bed", "walking_bass", "drums"]);
+});
+
+test("prompt steps: interpreting moves to step 2 with one part per group; Edit prompt goes back", () => {
+  let s = reduce(initialState(), { type: "setMode", mode: "prompt" });
+  assert.equal(s.promptStep, 1);
+  assert.equal(reduce(s, { type: "setPromptStep", step: 2 }).promptStep, 1);     // nothing interpreted yet
+  s = reduce(s, { type: "setPrompt", value: "full band jazz" });
+  s = reduce(s, { type: "interpretSuccess", prompt: "full band jazz",
+    plan: { settings: { generated_roles: ["full_composition", "pad"] }, explanation: [], unmatched: [], source: "keywords" } });
+  assert.equal(s.promptStep, 2);
+  assert.deepEqual(s.form.generatedRoles, ["lead_melody", "chord_bed", "bass_line", "drums"]);
+  s = reduce(s, { type: "setPromptStep", step: 1 });
+  assert.equal(s.promptStep, 1);
+  assert.equal(reduce(s, { type: "setPromptStep", step: 2 }).promptStep, 2);
+});
+
+test("major/minor from a prompt is not sent from the Settings or MIDI tabs", () => {
+  let s = initialState();
+  s = reduce(s, { type: "setField", field: "scaleMode", value: "minor" });
+  s = reduce(s, { type: "setMode", mode: "prompt" });
+  assert.equal(buildGenerateBody(s).scale_mode, "minor");
+  s = reduce(s, { type: "setMode", mode: "metadata" });
+  assert.equal(buildGenerateBody(s).scale_mode, null);
+  s = reduce(s, { type: "setMode", mode: "midi" });
+  assert.equal(buildGenerateBody(s).scale_mode, null);
+});
