@@ -72,7 +72,7 @@ test("undetected root requires a manual override", () => {
 test("no roles or invalid fields block generation with reasons", () => {
   let s = ready();
   for (const r of [...s.form.generatedRoles]) s = reduce(s, { type: "toggleRole", role: r });
-  assert.ok(generateBlockers(s).some((m) => m.includes("at least one role")));
+  assert.ok(generateBlockers(s).some((m) => m.includes("at least one part")));
   s = reduce(s, { type: "toggleRole", role: "pad" });
   s = reduce(s, { type: "setField", field: "tempo", value: "999" });
   assert.equal(canGenerate(s), false);
@@ -200,7 +200,7 @@ test("build on this turns a result into a locked MIDI input and asks for new rol
   assert.equal(s.mode, "midi");
   assert.equal(s.form.inputRole, "full_mix");
   assert.deepEqual(s.buildingFrom, { jobId: "j1", candidate: 0 });
-  assert.ok(generateBlockers(s).some((m) => m.includes("at least one role")));
+  assert.ok(generateBlockers(s).some((m) => m.includes("at least one part")));
   s = reduce(s, { type: "toggleRole", role: "pad" });
   assert.equal(canGenerate(s), true);
   const b = buildGenerateBody(s);
@@ -273,4 +273,73 @@ test("an unreliable emotion reading is shown but does not change the settings", 
     style: { source: "classifier", reliable: false, emotion: [{ label: "sad", score: 0.3 }], genre: [] } } });
   assert.equal(s.form.emotion, "happy");                 // the default stays
   assert.equal(s.analysis.style.emotion[0].label, "sad"); // but the reading is still available to show
+});
+
+// ------------------------------------------------------------------ tab workflow (grouped parts, prompt steps)
+import { normalizeRoles, setGroupRole, partName } from "../choices.js";
+
+test("parts: one role per group, in group order; full composition expands to the core parts", () => {
+  assert.deepEqual(normalizeRoles(["drums", "chord_bed", "pad", "bass_line"]), ["chord_bed", "bass_line", "drums"]);
+  assert.deepEqual(normalizeRoles(["full_composition"]), ["lead_melody", "chord_bed", "bass_line", "drums"]);
+  assert.deepEqual(normalizeRoles([]), []);
+  assert.equal(partName("chord_bed"), "Block chords (chord bed)");
+});
+
+test("parts: choosing in a group replaces that group's part; Skip removes it", () => {
+  let roles = ["chord_bed", "bass_line", "drums"];
+  roles = setGroupRole(roles, "chords", "arpeggio");
+  assert.deepEqual(roles, ["arpeggio", "bass_line", "drums"]);
+  roles = setGroupRole(roles, "drums", null);
+  assert.deepEqual(roles, ["arpeggio", "bass_line"]);
+  roles = setGroupRole(roles, "melody", "lead_melody");
+  assert.deepEqual(roles, ["lead_melody", "arpeggio", "bass_line"]);
+  assert.deepEqual(setGroupRole(roles, "bass", "drums"), ["lead_melody", "arpeggio"]);   // a role from another group is ignored
+});
+
+test("setGroupRole action updates the form", () => {
+  const s = reduce(initialState(), { type: "setGroupRole", group: "bass", role: "walking_bass" });
+  assert.deepEqual(s.form.generatedRoles, ["chord_bed", "walking_bass", "drums"]);
+});
+
+test("prompt steps: interpreting moves to step 2 with one part per group; Edit prompt goes back", () => {
+  let s = reduce(initialState(), { type: "setMode", mode: "prompt" });
+  assert.equal(s.promptStep, 1);
+  assert.equal(reduce(s, { type: "setPromptStep", step: 2 }).promptStep, 1);     // nothing interpreted yet
+  s = reduce(s, { type: "setPrompt", value: "full band jazz" });
+  s = reduce(s, { type: "interpretSuccess", prompt: "full band jazz",
+    plan: { settings: { generated_roles: ["full_composition", "pad"] }, explanation: [], unmatched: [], source: "keywords" } });
+  assert.equal(s.promptStep, 2);
+  assert.deepEqual(s.form.generatedRoles, ["lead_melody", "chord_bed", "bass_line", "drums"]);
+  s = reduce(s, { type: "setPromptStep", step: 1 });
+  assert.equal(s.promptStep, 1);
+  assert.equal(reduce(s, { type: "setPromptStep", step: 2 }).promptStep, 2);
+});
+
+test("major/minor from a prompt is not sent from the Settings or MIDI tabs", () => {
+  let s = initialState();
+  s = reduce(s, { type: "setField", field: "scaleMode", value: "minor" });
+  s = reduce(s, { type: "setMode", mode: "prompt" });
+  assert.equal(buildGenerateBody(s).scale_mode, "minor");
+  s = reduce(s, { type: "setMode", mode: "metadata" });
+  assert.equal(buildGenerateBody(s).scale_mode, null);
+  s = reduce(s, { type: "setMode", mode: "midi" });
+  assert.equal(buildGenerateBody(s).scale_mode, null);
+});
+
+import { promptHighlights, promptSegments } from "../choices.js";
+
+test("prompt highlighting finds the words behind each setting", () => {
+  const p = "A sad slow jazz piece with piano in D minor, 16 bars at 80 bpm";
+  const h = promptHighlights(p, { genre: "jazz", emotion: "sad", key: "D", scale_mode: "minor", tempo: 80, bars: 16,
+    instrumentation: "piano" }, ["genre 'jazz' from \"jazz\""]);
+  assert.deepEqual(h.map((x) => [p.slice(x.start, x.end), x.cat]),
+    [["sad", "mood"], ["jazz", "genre"], ["piano", "instruments"], ["D minor", "key"], ["16 bars", "length"], ["80 bpm", "tempo"]]);
+  assert.equal(promptSegments(p, h).map((s) => s.text).join(""), p);
+});
+
+test("prompt highlighting: genre from its source word; a lone article is not a key", () => {
+  const p = "A cheerful bouncy bluegrass hoedown in A, 140bpm";
+  const h = promptHighlights(p, { genre: "country", key: "A", tempo: 140 }, ["genre 'country' from \"bluegrass\""]);
+  assert.deepEqual(h.map((x) => [p.slice(x.start, x.end), x.cat]), [["bluegrass", "genre"], ["A", "key"], ["140bpm", "tempo"]]);
+  assert.equal(h.find((x) => x.cat === "key").start, p.indexOf("in A") + 3);
 });

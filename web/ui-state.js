@@ -1,5 +1,6 @@
 // Pure UI state logic (no DOM). Shared by app.js and the Node test-suite (web/tests).
 // Buttons are enabled only when these predicates say so, and every disabled state has a reason.
+import { normalizeRoles, setGroupRole } from "./choices.js";
 
 export const MAX_VARIATIONS = 8;
 export const MAX_BARS = 256;
@@ -27,6 +28,7 @@ export function initialState() {
     buildingFrom: null,           // {jobId, candidate} when the current input is a previous result ("Build on this")
     preparingInput: false,        // "Build on this" request in flight
     prompt: "",                   // text prompt (prompt mode)
+    promptStep: 1,                // prompt tab: 1 = write the prompt, 2 = check the settings found in it
     interpreting: false,
     interpretation: null,         // POST /plan-from-text result
     interpretedPrompt: null,      // the prompt text that `interpretation` belongs to
@@ -103,7 +105,7 @@ export function generateBlockers(s) {
     if (!s.form.emotion) out.push("Choose an emotion.");
     if (!s.form.key) out.push("Choose a key/root.");
   }
-  if (!s.form.generatedRoles || s.form.generatedRoles.length === 0) out.push("Select at least one role to generate.");
+  if (!s.form.generatedRoles || s.form.generatedRoles.length === 0) out.push("Pick at least one part to write.");
   for (const msg of Object.values(fieldErrors(s))) out.push(msg);
   return out;
 }
@@ -194,7 +196,8 @@ export function buildGenerateBody(s) {
   const f = s.form;
   const body = {
     mode: s.mode === "midi" ? "midi" : "metadata", genre: f.genre || null, emotion: f.emotion || null, key: f.key || null,
-    scale_mode: f.scaleMode || null, tempo: f.tempo === "" ? null : Number(f.tempo), meter: f.meter,
+    // Only a prompt can set major/minor now (there is no mode control), so a leftover must not leak into other tabs.
+    scale_mode: s.mode === "prompt" ? (f.scaleMode || null) : null, tempo: f.tempo === "" ? null : Number(f.tempo), meter: f.meter,
     bars: f.bars === "" ? null : Number(f.bars), density: Number(f.density),
     instrumentation: f.instrumentation || null, form: f.form === "auto" ? null : f.form,
     generated_roles: [...f.generatedRoles], n_variations: Number(f.variations), seed: Number(f.seed),
@@ -260,8 +263,14 @@ export function reduce(s, action) {
       n.interpreting = true; n.interpretError = null; return n;
     case "interpretSuccess":
       n.interpreting = false; n.interpretation = action.plan; n.interpretedPrompt = action.prompt.trim();
+      // A new prompt starts fresh for what it doesn't mention (genre, emotion and key always need a value, so they stay).
+      Object.assign(n.form, { tempo: "", bars: "", instrumentation: "", scaleMode: "", form: "auto" });
       n.form = applySettings(n.form, action.plan.settings, s.options);
+      n.form.generatedRoles = normalizeRoles(n.form.generatedRoles);   // the picker allows one part per group
+      n.promptStep = 2;
       return n;
+    case "setPromptStep":
+      n.promptStep = action.step === 2 && s.interpretation ? 2 : 1; return n;
     case "interpretError":
       n.interpreting = false; n.interpretError = action.error; return n;
     case "critiqueStart":
@@ -287,6 +296,8 @@ export function reduce(s, action) {
       if (roles.has(action.role)) roles.delete(action.role); else roles.add(action.role);
       n.form.generatedRoles = [...roles]; return n;
     }
+    case "setGroupRole":
+      n.form.generatedRoles = setGroupRole(n.form.generatedRoles, action.group, action.role); return n;
     case "setTrackRole":
       n.trackRoles = { ...s.trackRoles, [action.trackId]: action.role }; return n;
     case "generateStart":
